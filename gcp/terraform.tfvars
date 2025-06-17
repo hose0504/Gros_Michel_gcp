@@ -23,10 +23,11 @@ subnets = [
 # IAM 설정
 service_accounts = [
   {
-    name  = "sa-1"
+    name  = "sa-admin-001"  # ✅ 최소 5자 이상, 규칙에 맞게
     roles = ["roles/viewer"]
   }
 ]
+
 
 roles = [
   "roles/compute.admin",

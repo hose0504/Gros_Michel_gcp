@@ -68,6 +68,8 @@ data "google_client_config" "current" {}
 # kubeconfig 생성
 #-------------------------------
 resource "local_file" "kubeconfig" {
+  count = var.credentials_file_path != "" ? 1 : 0  # 로컬에서만 실행
+
   content = templatefile("${path.module}/kubeconfig.tpl", {
     cluster_name     = data.google_container_cluster.cluster_info.name
     cluster_endpoint = data.google_container_cluster.cluster_info.endpoint
@@ -83,3 +85,4 @@ resource "local_file" "kubeconfig" {
 
   filename = "${path.module}/generated_kubeconfig"
 }
+
