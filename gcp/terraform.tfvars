@@ -1,7 +1,7 @@
 # GCP 프로젝트 정보
 project_id = "skillful-cortex-463200-a7"
-region     = "asia-northeast3"
-zone       = "asia-northeast3-a"
+region     = "us-central1"
+zone       = "us-central1-a"
 
 # VPC 네트워크 설정
 network_name = "my-vpc-network"
@@ -10,12 +10,12 @@ subnets = [
   {
     name          = "subnet-1"
     ip_cidr_range = "10.0.1.0/24"
-    region        = "asia-northeast3"
+    region        = "us-central1"
   },
   {
     name          = "subnet-2"
     ip_cidr_range = "10.0.2.0/24"
-    region        = "asia-northeast3"
+    region        = "us-central1"
   }
 ]
 
@@ -36,7 +36,6 @@ roles = [
 cluster_name    = "gros-michel-gke-cluster"
 cluster_version = "1.32.4-gke.1353003"
 
-
 node_pools = [
   {
     name         = "default-pool"
@@ -45,5 +44,5 @@ node_pools = [
   }
 ]
 
-# credentials는 GitHub Actions에서 secrets로 전달되므로 비워두거나 생략 가능
-# gcp_credentials = "" 
+# credentials는 GitHub Actions에서 secrets로 전달되므로 생략
+# gcp_credentials = ""
