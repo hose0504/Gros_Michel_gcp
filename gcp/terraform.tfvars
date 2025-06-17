@@ -1,5 +1,3 @@
-# GCP 인증 키 파일
-gcp_credentials = file("gcp-key.json")  # 로컬에서 사용할 서비스 계정 키 경로
 
 # GCP 프로젝트 정보
 project_id = "my-gcp-project"

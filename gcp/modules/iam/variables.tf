@@ -10,3 +10,8 @@ variable "service_accounts" {
     roles = list(string)
   }))
 }
+
+variable "roles" {
+  description = "할당할 IAM 역할 리스트"
+  type        = list(string)
+}
