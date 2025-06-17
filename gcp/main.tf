@@ -9,34 +9,25 @@ terraform {
   }
 }
 
-#-------------------------------
 # VPC 모듈 호출
-#-------------------------------
 module "vpc" {
-  source = "./modules/vpc"
-
+  source       = "./modules/vpc"
   project_id   = var.project_id
   network_name = var.network_name
   subnets      = var.subnets
 }
 
-#-------------------------------
-# IAM 모듈 호출 (필요하면)
-#-------------------------------
+# IAM 모듈 호출 (선택)
 module "iam" {
-  source = "./modules/iam"
-
+  source           = "./modules/iam"
   project_id       = var.project_id
   service_accounts = var.service_accounts
   roles            = var.roles
 }
 
-#-------------------------------
 # GKE 모듈 호출
-#-------------------------------
 module "gke" {
-  source = "./modules/gke"
-
+  source          = "./modules/gke"
   project_id      = var.project_id
   region          = var.region
   cluster_name    = var.cluster_name
