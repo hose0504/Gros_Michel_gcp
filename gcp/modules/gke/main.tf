@@ -17,7 +17,6 @@ resource "google_container_cluster" "primary" {
   network    = var.network
   subnetwork = var.subnetwork
 
-  min_master_version = var.cluster_version
 
   addons_config {
     http_load_balancing {
