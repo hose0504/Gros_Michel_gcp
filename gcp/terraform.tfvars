@@ -34,7 +34,7 @@ roles = [
 
 # GKE 클러스터 설정
 cluster_name    = "my-gke-cluster"
-cluster_version = "1.27.3-gke.1500"
+cluster_version = "1.32.3-gke.1170000"
 
 node_pools = [
   {
