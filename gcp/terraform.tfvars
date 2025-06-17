@@ -33,7 +33,7 @@ roles = [
 ]
 
 # GKE 클러스터 설정
-cluster_name    = "gros-michel-gke-cluster"
+cluster_name = "gros-michel-gke-cluster"
 
 
 node_pools = [

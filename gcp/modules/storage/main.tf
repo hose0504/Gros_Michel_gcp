@@ -21,7 +21,7 @@ resource "google_storage_bucket" "this" {
 
 # 퍼블릭 읽기 권한 (선택적)
 resource "google_storage_bucket_iam_member" "public_access" {
-  count  = var.public_access ? 1 : 0
+  count = var.public_access ? 1 : 0
 
   bucket = google_storage_bucket.this.name
   role   = "roles/storage.objectViewer"

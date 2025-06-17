@@ -4,7 +4,7 @@ resource "google_dns_managed_zone" "this" {
   dns_name    = var.dns_name
   description = var.description
 
-  visibility  = "public"
+  visibility = "public"
 }
 
 # 2. A 레코드 생성

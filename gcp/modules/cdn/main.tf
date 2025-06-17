@@ -13,7 +13,7 @@ resource "google_compute_url_map" "cdn_url_map" {
 
 # 3. Target HTTP Proxy
 resource "google_compute_target_http_proxy" "cdn_proxy" {
-  name   = "${var.name_prefix}-proxy"
+  name    = "${var.name_prefix}-proxy"
   url_map = google_compute_url_map.cdn_url_map.self_link
 }
 
