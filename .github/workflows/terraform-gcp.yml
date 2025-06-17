@@ -9,6 +9,7 @@ jobs:
   terraform-apply:
     if: contains(github.event.head_commit.message, 'apply')
     runs-on: ubuntu-latest
+    timeout-minutes: 30  # ⏱️ GKE 클러스터 생성 시간 확보
 
     env:
       TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
@@ -47,11 +48,12 @@ jobs:
         run: terraform plan -var-file="terraform.tfvars"
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve -var-file="terraform.tfvars"
+        run: terraform apply -auto-approve -input=false -var-file="terraform.tfvars"  # 🛠️ 변경됨
 
   terraform-destroy:
     if: contains(github.event.head_commit.message, 'destroy')
     runs-on: ubuntu-latest
+    timeout-minutes: 30  # ⏱️ destroy도 오래 걸릴 수 있음
 
     env:
       TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
@@ -81,7 +83,7 @@ jobs:
         run: terraform init
 
       - name: Terraform Destroy
-        run: terraform destroy -auto-approve -var-file="terraform.tfvars"
+        run: terraform destroy -auto-approve -input=false -var-file="terraform.tfvars"  # 🛠️ 변경됨
 
   no-action:
     if: "!contains(github.event.head_commit.message, 'apply') && !contains(github.event.head_commit.message, 'destroy')"
