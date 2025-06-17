@@ -9,16 +9,20 @@ terraform {
   }
 }
 
+#-------------------------------
 # VPC 모듈 호출
+#-------------------------------
 module "vpc" {
   source          = "./modules/vpc"
   project_id      = var.project_id
   network_name    = var.network_name
   subnets         = var.subnets
-  gcp_credentials = var.gcp_credentials # ✅ 이거 추가!
+  gcp_credentials = var.gcp_credentials
 }
 
+#-------------------------------
 # IAM 모듈 호출 (선택)
+#-------------------------------
 module "iam" {
   source           = "./modules/iam"
   project_id       = var.project_id
@@ -26,7 +30,9 @@ module "iam" {
   roles            = var.roles
 }
 
+#-------------------------------
 # GKE 모듈 호출
+#-------------------------------
 module "gke" {
   source          = "./modules/gke"
   project_id      = var.project_id

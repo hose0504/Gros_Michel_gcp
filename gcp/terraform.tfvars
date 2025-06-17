@@ -1,6 +1,5 @@
-
 # GCP 프로젝트 정보
-project_id = "my-gcp-project"
+project_id = "skillful-cortex-463200-a7"
 region     = "asia-northeast3"
 zone       = "asia-northeast3-a"
 
@@ -23,11 +22,10 @@ subnets = [
 # IAM 설정
 service_accounts = [
   {
-    name  = "sa-admin-001" # ✅ 최소 5자 이상, 규칙에 맞게
+    name  = "sa-admin-001"
     roles = ["roles/viewer"]
   }
 ]
-
 
 roles = [
   "roles/compute.admin",
@@ -45,3 +43,6 @@ node_pools = [
     node_count   = 3
   }
 ]
+
+# credentials는 GitHub Actions에서 secrets로 전달되므로 비워두거나 생략 가능
+# gcp_credentials = "" 
