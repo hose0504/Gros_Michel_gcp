@@ -16,3 +16,8 @@ variable "subnets" {
     region        = string
   }))
 }
+
+variable "gcp_credentials" {
+  description = "GCP 서비스 계정 키 (JSON 문자열)"
+  type        = string
+}
