@@ -40,9 +40,9 @@ node_pools = [
   {
     name         = "default-pool"
     machine_type = "e2-medium"
-    node_count   = 3
-    disk_size_gb = 30            # 💡 줄이기
-    disk_type    = "pd-standard" # 💡 HDD로 변경 (쿼터 안 씀)
+    node_count   = 2
+    disk_size_gb = 50 # 💡 이렇게 줄이면 총 150GB
+    disk_type    = "pd-ssd"
   }
 ]
 

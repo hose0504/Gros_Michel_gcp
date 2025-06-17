@@ -21,9 +21,11 @@ locals {
 
 # IAM 역할 바인딩
 resource "google_project_iam_member" "bindings" {
-  for_each = { for item in local.iam_bindings : item.key => item }
-
   project = var.project_id
   role    = each.value.role
-  member  = "serviceAccount:${each.value.sa_email}"
+  member  = each.value.member
+
+  depends_on = [
+    google_service_account.accounts
+  ]
 }
