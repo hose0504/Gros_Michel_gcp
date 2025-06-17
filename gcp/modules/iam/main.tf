@@ -21,11 +21,17 @@ locals {
 
 # IAM 역할 바인딩
 resource "google_project_iam_member" "bindings" {
+  for_each = {
+    for sa in var.service_accounts : "${sa.name}-${sa.roles[0]}" => {
+      role   = sa.roles[0]
+      member = "serviceAccount:${sa.name}@${var.project_id}.iam.gserviceaccount.com"
+    }
+  }
+
   project = var.project_id
   role    = each.value.role
   member  = each.value.member
 
-  depends_on = [
-    google_service_account.accounts
-  ]
+  depends_on = [google_service_account.accounts]
 }
+
