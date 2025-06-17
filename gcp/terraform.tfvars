@@ -34,6 +34,7 @@ roles = [
 
 # GKE 클러스터 설정
 cluster_name = "gros-michel-gke-cluster"
+cluster_version = "1.32.4-gke.1353003"
 
 
 node_pools = [
