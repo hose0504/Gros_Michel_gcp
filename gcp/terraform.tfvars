@@ -41,6 +41,8 @@ node_pools = [
     name         = "default-pool"
     machine_type = "e2-medium"
     node_count   = 3
+     disk_size_gb = 30                 # 💡 줄이기
+    disk_type    = "pd-standard"      # 💡 HDD로 변경 (쿼터 안 씀)
   }
 ]
 
