@@ -1,7 +1,6 @@
 ################################################################################
 # modules/gke/main.tf
-#
-# GKE 클러스터와 노드풀을 정의하는 모듈의 메인 파일 (오류 제거 완성본)
+# GKE 클러스터와 노드풀을 정의하는 모듈의 메인 파일 (수정 완료 버전)
 ################################################################################
 
 #-------------------------------
@@ -55,7 +54,7 @@ resource "google_container_node_pool" "node_pools" {
 }
 
 #-------------------------------
-# 클러스터 정보 조회 및 kubeconfig 생성
+# 클러스터 정보 조회
 #-------------------------------
 data "google_container_cluster" "cluster_info" {
   name     = google_container_cluster.primary.name
@@ -65,18 +64,22 @@ data "google_container_cluster" "cluster_info" {
 
 data "google_client_config" "current" {}
 
+#-------------------------------
+# kubeconfig 생성
+#-------------------------------
 resource "local_file" "kubeconfig" {
   content = templatefile("${path.module}/kubeconfig.tpl", {
-    cluster_name     = data.google_container_cluster.cluster_info.name
-    cluster_endpoint = data.google_container_cluster.cluster_info.endpoint
-    cluster_ca_cert  = base64decode(data.google_container_cluster.cluster_info.master_auth.cluster_ca_certificate)
+    cluster_name     = data.google_container_cluster.cluster_info[0].name
+    cluster_endpoint = data.google_container_cluster.cluster_info[0].endpoint
+    cluster_ca_cert  = base64decode(data.google_container_cluster.cluster_info[0].master_auth.cluster_ca_certificate)
     client_cert      = ""
     client_key       = ""
     token            = ""
     project          = var.project_id
     region           = var.region
-    user             = data.google_client_config.current.email
+    user             = "terraform"
     credentials_json = file(var.credentials_file_path)
   })
+
   filename = "${path.module}/generated_kubeconfig"
 }
