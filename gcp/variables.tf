@@ -51,8 +51,9 @@ variable "cluster_name" {
 }
 
 variable "cluster_version" {
-  description = "GKE 버전 (예: \"1.24.10-gke.1000\")"
+  description = "GKE 클러스터 버전 (지정하지 않으면 GCP가 자동 선택)"
   type        = string
+  default     = null
 }
 
 variable "node_pools" {
