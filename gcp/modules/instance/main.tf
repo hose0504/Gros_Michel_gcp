@@ -25,7 +25,6 @@ resource "google_compute_instance" "vm_instance" {
 
   metadata = {
     ssh-keys = "${var.ssh_username}:${var.ssh_pub_key}"
-    block-project-ssh-keys = "true"
     startup-script       = file("${path.module}/startup.sh")
   }
 }
