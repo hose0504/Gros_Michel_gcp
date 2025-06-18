@@ -50,7 +50,7 @@ node_pools = [
 # VM 인스턴스 설정
 instance_name     = "vm-instance-1"
 machine_type      = "e2-medium"
-boot_image        = "ubuntu-os-cloud/ubuntu-2404-lts"
+boot_image        = "ubuntu-os-cloud/ubuntu-2204-lts"
 boot_disk_size_gb = 10
 boot_disk_type    = "pd-balanced"
 network           = "default"
