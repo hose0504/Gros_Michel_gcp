@@ -39,5 +39,7 @@ variable "ssh_username" {
 }
 
 variable "ssh_pub_key" {
-  type = string
+  description = "SSH 공개키 문자열"
+  type        = string
 }
+
