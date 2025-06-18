@@ -64,3 +64,49 @@ variable "node_pools" {
     node_count   = number
   }))
 }
+
+# ---------- VM 인스턴스 관련 ----------
+variable "instance_name" {
+  description = "VM 인스턴스 이름"
+  type        = string
+}
+
+variable "machine_type" {
+  description = "VM 머신 타입"
+  type        = string
+}
+
+variable "boot_image" {
+  description = "OS 이미지"
+  type        = string
+}
+
+variable "boot_disk_size_gb" {
+  description = "부팅 디스크 크기 (GB)"
+  type        = number
+}
+
+variable "boot_disk_type" {
+  description = "디스크 유형"
+  type        = string
+}
+
+variable "network" {
+  description = "네트워크 이름"
+  type        = string
+}
+
+variable "ssh_username" {
+  description = "SSH 사용자 이름"
+  type        = string
+}
+
+variable "ssh_pub_key" {
+  description = "SSH 공개키 전체 문자열 (e.g. ssh-rsa ...)"
+  type        = string
+}
+
+variable "public_key_path" {
+  description = "공개키(.pub) 파일 경로"
+  type        = string
+}

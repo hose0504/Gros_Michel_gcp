@@ -19,7 +19,7 @@ subnets = [
   }
 ]
 
-# IAM 설정
+# IAM 서비스 계정
 service_accounts = [
   {
     name  = "sa-admin-001"
@@ -27,6 +27,7 @@ service_accounts = [
   }
 ]
 
+# 프로젝트 수준 역할 바인딩
 roles = [
   "roles/compute.admin",
   "roles/container.admin"
@@ -41,10 +42,16 @@ node_pools = [
     name         = "default-pool"
     machine_type = "e2-medium"
     node_count   = 2
-    disk_size_gb = 50 # 💡 이렇게 줄이면 총 150GB
+    disk_size_gb = 50
     disk_type    = "pd-ssd"
   }
 ]
 
-# credentials는 GitHub Actions에서 secrets로 전달되므로 생략
-# gcp_credentials = ""
+# VM 인스턴스 설정
+instance_name     = "vm-instance-1"
+machine_type      = "e2-medium"
+boot_image        = "ubuntu-os-cloud/ubuntu-2404-lts"
+boot_disk_size_gb = 10
+boot_disk_type    = "pd-balanced"
+network           = "default"
+ssh_username      = "wish"

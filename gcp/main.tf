@@ -39,9 +39,26 @@ module "gke" {
   region          = var.region
   cluster_name    = var.cluster_name
   cluster_version = var.cluster_version
-
-  network    = module.vpc.network_name
-  subnetwork = module.vpc.subnet_self_links[0]
-
-  node_pools = var.node_pools
+  network         = module.vpc.network_name
+  subnetwork      = module.vpc.subnet_self_links[0]
+  node_pools      = var.node_pools
 }
+
+
+module "instance" {
+  source  = "./modules/instance"
+
+  project_id         = var.project_id
+  region             = var.region              # ✅ 추가
+  zone               = var.zone
+  network            = var.network
+  instance_name      = var.instance_name
+  machine_type       = var.machine_type
+  boot_image         = var.boot_image
+  boot_disk_size_gb  = var.boot_disk_size_gb
+  boot_disk_type     = var.boot_disk_type
+  ssh_username       = var.ssh_username
+  ssh_pub_key        = var.ssh_pub_key
+  public_key_path    = var.public_key_path     # ✅ 추가
+}
+
