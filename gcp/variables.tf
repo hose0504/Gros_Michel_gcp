@@ -106,7 +106,4 @@ variable "ssh_pub_key" {
   type        = string
 }
 
-variable "public_key_path" {
-  description = "공개키(.pub) 파일 경로"
-  type        = string
-}
+
