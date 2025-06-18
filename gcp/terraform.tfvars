@@ -55,3 +55,4 @@ boot_disk_size_gb = 10
 boot_disk_type    = "pd-balanced"
 network           = "default"
 ssh_username      = "wish"
+ssh_pub_key  = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDJ4uGHX5i/O2ibz2WBa9B8nYaWHnaioIyUf9d0rcCmEhzUUGy0thhOxdB4j4UDu8Ro9R7vo/uYALUqP8nNCWUMQP0Y6XK9fI3MTXsO4GsplIV7s/W8p+KVNrvXyqcmQ4jM5jt6+qCZy1dXCHMNi1JoeAjCaZtNMvZVFWnS4FpZgwkFBghPByVj1NPCoSE/iaYm9kUMxkdBPlzhHSxFT4B8RWKN48oOk5VdL3EFHI0D0EwUlW9PiswXolqIkZFO7CMXi3loOIHfrLdjuYI6dT7kMjutcHwbTMS7GXyQIyoECLIpNgOeakLg4j+M12A4AxDEtx11O/Xfd/1YlbqEi80nqG+76GG/h1AAXQ1U8Or3Xdj+FgnvmcRkFo7+dW7FjJtwwf9kIE5iPeGv50pq12WqJZefL1ZlqUgRo+uBwa2AmsH5E9xIF2BKYwFBwQ+fgvZ1HZskiJ2DL9L3YOBztLqdKjBlIAW0YYobRPr1tbinIAjtvVXYtCbV6snwAI7ME7E= wish"
