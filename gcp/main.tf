@@ -63,8 +63,8 @@ module "instance" {
 
 terraform {
   backend "gcs" {
-    bucket  = "grosmichel-tfstate-202506180252"
-    prefix  = "terraform/state"
+    bucket = "grosmichel-tfstate-202506180252"
+    prefix = "terraform/state"
   }
 }
 

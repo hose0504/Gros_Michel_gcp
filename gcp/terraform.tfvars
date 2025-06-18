@@ -4,7 +4,7 @@ region     = "us-central1"
 zone       = "us-central1-a"
 
 # VPC 네트워크 설정
-network_name = "my-vpc-network"
+network_name = "gros-michel-network"
 
 subnets = [
   {
