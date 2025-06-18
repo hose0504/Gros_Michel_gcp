@@ -20,24 +20,24 @@ resource "google_compute_vpn_gateway" "vpn_gateway" {
 
 # 3. VPN 터널 (정적 라우팅 기반, IKEv2, Pre-shared key 사용)
 resource "google_compute_vpn_tunnel" "vpn_tunnel" {
-  name                     = "onprem-vpn-tunnel"
-  region                   = var.region
-  target_vpn_gateway       = google_compute_vpn_gateway.vpn_gateway.id
-  peer_ip                  = var.on_prem_public_ip
-  shared_secret            = var.shared_secret
-  ike_version              = 2
+  name               = "onprem-vpn-tunnel"
+  region             = var.region
+  target_vpn_gateway = google_compute_vpn_gateway.vpn_gateway.id
+  peer_ip            = var.on_prem_public_ip
+  shared_secret      = var.shared_secret
+  ike_version        = 2
 
-  local_traffic_selector   = [var.gcp_cidr_block]
-  remote_traffic_selector  = [var.on_prem_cidr_block]
+  local_traffic_selector  = [var.gcp_cidr_block]
+  remote_traffic_selector = [var.on_prem_cidr_block]
 
   depends_on = [google_compute_vpn_gateway.vpn_gateway]
 }
 
 # 4. GCP → 온프레미스 트래픽용 정적 라우트
 resource "google_compute_route" "on_prem_route" {
-  name            = "route-to-onprem"
-  network         = var.network
-  dest_range      = var.on_prem_cidr_block
-  priority        = 1000
+  name                = "route-to-onprem"
+  network             = var.network
+  dest_range          = var.on_prem_cidr_block
+  priority            = 1000
   next_hop_vpn_tunnel = google_compute_vpn_tunnel.vpn_tunnel.id
 }
