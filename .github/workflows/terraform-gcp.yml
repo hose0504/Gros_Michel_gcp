@@ -9,7 +9,7 @@ jobs:
   terraform-apply:
     if: contains(github.event.head_commit.message, 'apply')
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 50
 
     env:
       TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
@@ -54,7 +54,7 @@ jobs:
   terraform-destroy:
     if: contains(github.event.head_commit.message, 'destroy')
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 50
 
     env:
       TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
