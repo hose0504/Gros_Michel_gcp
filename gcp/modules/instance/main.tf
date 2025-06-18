@@ -19,8 +19,8 @@ resource "google_compute_instance" "vm_instance" {
   }
 
   network_interface {
-    network = var.network
-    access_config {} # 외부 IP 부여
+    network       = var.network
+    access_config {}
   }
 
   metadata = {
