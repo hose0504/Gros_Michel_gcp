@@ -61,3 +61,10 @@ module "instance" {
   ssh_pub_key       = var.ssh_pub_key
 }
 
+terraform {
+  backend "gcs" {
+    bucket  = "grosmichel-tfstate-202506180252"
+    prefix  = "terraform/state"
+  }
+}
+
