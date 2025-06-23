@@ -109,3 +109,9 @@ systemctl enable tomcat
 # -----------------------
 systemctl status tomcat || true
 kubectl version --client || true
+
+
+# -----------------------
+# Argo CD Application 배포 (Helm 기반)
+# -----------------------
+kubectl apply -f /root/app-helm.yaml

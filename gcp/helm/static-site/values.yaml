@@ -11,7 +11,7 @@ service:
 
 ingress:
   enabled: true
-  className: "gce" # GKE Ingress Controller 사용
+  className: "gce"  # GKE Ingress Controller 사용
   annotations:
     kubernetes.io/ingress.global-static-ip-name: grosmichel-ip
     networking.gke.io/managed-certificates: grosmichel-cert

@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grosmichel-site
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/hose0504/Gros_Michel_gcp.git
+    targetRevision: HEAD
+    path: gcp/gcp/helm/static-site  # 예: charts/my-app
+    helm:
+      valueFiles:
+        - values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
