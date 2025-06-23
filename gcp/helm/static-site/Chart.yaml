@@ -1,0 +1,5 @@
+apiVersion: v2
+name: static-site
+description: A Helm chart for a static website with full K8s stack
+version: 0.1.0
+type: application

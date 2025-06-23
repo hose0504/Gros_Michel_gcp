@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-basic
+  labels:
+    name: pod-basic
+    app: web
+    develop: spring-boot
+spec:
+  containers:
+  - name: web-container
+    image: jwh0722/web_v1en:latest
+    resources:
+      limits:
+        memory: "256Mi"
+        cpu: "250m"
+    ports:
+      - containerPort: 80
