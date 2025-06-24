@@ -6,14 +6,9 @@
 apt update -y && apt upgrade -y
 
 # -----------------------
-# OpenJDK 17 설치
+# 필수 패키지 설치
 # -----------------------
-apt install -y openjdk-17-jdk
-
-# -----------------------
-# AWS CLI 설치
-# -----------------------
-apt install -y awscli
+apt install -y openjdk-17-jdk awscli apt-transport-https ca-certificates gnupg curl sudo lsb-release wget
 
 # -----------------------
 # kubectl 설치 (v1.29.2 기준)
@@ -25,7 +20,6 @@ mv kubectl /usr/local/bin/
 # -----------------------
 # gcloud CLI 설치
 # -----------------------
-apt install -y apt-transport-https ca-certificates gnupg curl sudo lsb-release
 echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt cloud-sdk main" \
   | tee /etc/apt/sources.list.d/google-cloud-sdk.list
 curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg \
@@ -33,7 +27,8 @@ curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg \
 apt update -y && apt install -y google-cloud-sdk
 
 # -----------------------
-# 서비스 계정 키 다운로드 (퍼블릭 URL로)
+# 서비스 계정 키 다운로드
+# (GCS에서 공개 접근 가능하도록 설정되어 있어야 함)
 # -----------------------
 curl -o /root/terraform-sa.json https://storage.googleapis.com/grosmichel-tfstate-202506180252/terraform/state/skillful-cortex-463200-a7-f2c2c2dad05d.json
 
@@ -83,7 +78,6 @@ After=network.target
 Type=forking
 User=tomcat
 Group=tomcat
-
 Environment="JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64"
 Environment="CATALINA_HOME=/opt/tomcat/tomcat-11"
 Environment="CATALINA_BASE=/opt/tomcat/tomcat-11"
@@ -105,7 +99,8 @@ systemctl start tomcat
 systemctl enable tomcat
 
 # -----------------------
-# 상태 확인
+# app-helm.yaml 다운로드 및 적용
+# 반드시 퍼블릭 repo + main 브랜치 기준
 # -----------------------
-systemctl status tomcat || true
-kubectl version --client || true
+curl -o /root/app-helm.yaml https://raw.githubusercontent.com/wish4o/grosmichel/main/gcp/helm/static-site/templates/app-helm.yaml
+kubectl apply -f /root/app-helm.yaml || true
