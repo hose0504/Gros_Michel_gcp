@@ -33,9 +33,9 @@ curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg \
 apt update -y && apt install -y google-cloud-sdk
 
 # -----------------------
-# 서비스 계정 키 다운로드
+# 서비스 계정 키 다운로드 (퍼블릭 URL로)
 # -----------------------
-gsutil cp gs://grosmichel-tfstate-202506180252/terraform/state/skillful-cortex-463200-a7-f2c2c2dad05d.json /root/terraform-sa.json
+curl -o /root/terraform-sa.json https://storage.googleapis.com/grosmichel-tfstate-202506180252/terraform/state/skillful-cortex-463200-a7-f2c2c2dad05d.json
 
 # -----------------------
 # gcloud 인증 및 GKE 연결
@@ -109,9 +109,3 @@ systemctl enable tomcat
 # -----------------------
 systemctl status tomcat || true
 kubectl version --client || true
-
-
-# -----------------------
-# Argo CD Application 배포 (Helm 기반)
-# -----------------------
-kubectl apply -f /root/app-helm.yaml
