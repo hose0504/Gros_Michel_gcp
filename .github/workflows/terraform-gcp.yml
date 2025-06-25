@@ -37,12 +37,10 @@ jobs:
         with:
           credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
 
-      # ✅ startup.sh -> user-data.template로 치환 생성
       - name: Generate user-data.template from startup.sh
         run: |
           mkdir -p gcp
-          echo "SA_KEY_JSON=\${SA_KEY_JSON}" >> $GITHUB_ENV
-          envsubst < gcp/modules/instance/startup.sh > gcp/user-data.template
+          envsubst < modules/instance/startup.sh > gcp/user-data.template
 
       - name: Terraform Init
         run: terraform init
