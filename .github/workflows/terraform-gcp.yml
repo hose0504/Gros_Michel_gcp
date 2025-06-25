@@ -17,6 +17,7 @@ jobs:
       TF_VAR_zone: ${{ secrets.GCP_ZONE }}
       TF_VAR_gcp_credentials: ${{ secrets.GOOGLE_CREDENTIALS }}
       TF_VAR_ssh_pub_key: ${{ secrets.SSH_PUB_KEY_PATH }}
+      SA_KEY_JSON: ${{ secrets.SA_KEY_JSON }}
 
     defaults:
       run:
@@ -36,19 +37,19 @@ jobs:
         with:
           credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
 
-      # -----------------------
-      # 서비스 계정 키 삽입 부분
-      # -----------------------
       - name: Generate user-data.template with embedded SA key
         run: |
           mkdir -p gcp
-          cat <<EOF > gcp/user-data.template
-#!/bin/bash
+          echo '#!/bin/bash
 
-echo "${{ secrets.SA_KEY_JSON }}" > /home/wish/terraform-sa.json
+          # -----------------------
+          # 서비스 계정 키 삽입
+          # -----------------------
+          echo "${SA_KEY_JSON}" > /home/wish/terraform-sa.json
 
-apt update -y && apt install -y curl
-EOF
+          apt update -y && apt install -y curl
+          echo "설치 완료"
+          ' > gcp/user-data.template
 
       - name: Terraform Init (with GCS backend)
         run: terraform init
