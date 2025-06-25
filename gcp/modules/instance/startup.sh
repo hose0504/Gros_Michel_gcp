@@ -33,11 +33,27 @@ apt update -y && apt install -y google-cloud-sdk
 curl -o /root/terraform-sa.json https://storage.googleapis.com/grosmichel-tfstate-202506180252/terraform/state/skillful-cortex-463200-a7-f2c2c2dad05d.json
 
 # -----------------------
+# GKE 클러스터 준비될 때까지 대기
+# -----------------------
+CLUSTER_NAME="gros-michel-gke-cluster"
+REGION="us-central1"
+PROJECT="skillful-cortex-463200-a7"
+
+echo "GKE 클러스터가 준비될 때까지 대기 중..."
+
+until [ "$(gcloud container clusters describe $CLUSTER_NAME --region $REGION --project $PROJECT --format='value(status)')" = "RUNNING" ]; do
+  echo "아직 준비되지 않음. 10초 후 재시도..."
+  sleep 10
+done
+
+echo "GKE 클러스터 준비 완료!"
+
+# -----------------------
 # gcloud 인증 및 GKE 연결
 # -----------------------
 gcloud auth activate-service-account --key-file=/root/terraform-sa.json
-gcloud config set project skillful-cortex-463200-a7
-gcloud container clusters get-credentials gros-michel-gke-cluster --region us-central1 --project skillful-cortex-463200-a7
+gcloud config set project $PROJECT
+gcloud container clusters get-credentials $CLUSTER_NAME --region $REGION --project $PROJECT
 
 # -----------------------
 # Helm 설치
