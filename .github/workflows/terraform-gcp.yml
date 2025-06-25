@@ -37,10 +37,11 @@ jobs:
         with:
           credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
 
-      - name: Inject SA key into startup script
+      # ✅ startup.sh → user-data.template로 그대로 복사
+      - name: Copy startup.sh to user-data.template
         run: |
-          mkdir -p gcp/modules/instance
-          sed "s|__SA_KEY_JSON__|${{ secrets.SA_KEY_JSON }}|" gcp/modules/instance/startup.sh > gcp/user-data.template
+          mkdir -p gcp
+          cp gcp/modules/instance/startup.sh gcp/user-data.template
 
       - name: Terraform Init
         run: terraform init

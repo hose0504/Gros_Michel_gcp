@@ -1,90 +1,101 @@
-#!/bin/bash
+name: Terraform GCP CI/CD
 
-# 시스템 업데이트
-apt update -y && apt upgrade -y
+on:
+  push:
+    branches: ["main"]
+    paths: ["**"]
 
-# 필수 패키지 설치
-apt install -y openjdk-17-jdk awscli apt-transport-https ca-certificates gnupg curl sudo lsb-release wget
+jobs:
+  terraform-apply:
+    if: contains(github.event.head_commit.message, 'apply')
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
 
-# kubectl 설치 (v1.29.2 기준)
-curl -LO "https://dl.k8s.io/release/v1.29.2/bin/linux/amd64/kubectl"
-chmod +x kubectl
-mv kubectl /usr/local/bin/
+    env:
+      TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
+      TF_VAR_region: ${{ secrets.GCP_REGION }}
+      TF_VAR_zone: ${{ secrets.GCP_ZONE }}
+      TF_VAR_gcp_credentials: ${{ secrets.GOOGLE_CREDENTIALS }}
+      TF_VAR_ssh_pub_key: ${{ secrets.SSH_PUB_KEY_PATH }}
+      SA_KEY_JSON: ${{ secrets.SA_KEY_JSON }}
 
-# gcloud CLI 설치
-echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt cloud-sdk main" | tee /etc/apt/sources.list.d/google-cloud-sdk.list
-curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
-apt update -y && apt install -y google-cloud-sdk
+    defaults:
+      run:
+        working-directory: gcp
 
-# 서비스 계정 키 삽입
-cat <<EOF > /home/wish/terraform-sa.json
-__SA_KEY_JSON__
-EOF
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-# GKE 클러스터 준비 대기
-CLUSTER_NAME="gros-michel-gke-cluster"
-REGION="us-central1"
-PROJECT="skillful-cortex-463200-a7"
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.6.6
 
-echo "GKE 클러스터가 준비될 때까지 대기 중..."
-until [ "$(gcloud container clusters describe $CLUSTER_NAME --region $REGION --project $PROJECT --format='value(status)')" = "RUNNING" ]; do
-  echo "아직 준비되지 않음. 10초 후 재시도..."
-  sleep 10
-done
-echo "GKE 클러스터 준비 완료!"
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
 
-# gcloud 인증 및 연결
-gcloud auth activate-service-account --key-file=/home/wish/terraform-sa.json
-gcloud config set project $PROJECT
-gcloud container clusters get-credentials $CLUSTER_NAME --region $REGION --project $PROJECT
+      - name: Inject SA key into startup script
+        run: |
+          mkdir -p gcp/modules/instance
+          sed -e "s|__SA_KEY_JSON__|${SA_KEY_JSON}|" gcp/modules/instance/startup.sh > gcp/user-data.template
 
-# Helm 설치
-curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      - name: Terraform Init
+        run: terraform init
 
-# Argo CD 설치
-helm repo add argo https://argoproj.github.io/argo-helm
-helm repo update
-helm install argocd argo/argo-cd -n argocd --create-namespace
+      - name: Terraform Format Check
+        run: terraform fmt -check
 
-# tomcat 사용자 생성
-useradd -r -m -U -d /opt/tomcat -s /usr/sbin/nologin tomcat
+      - name: Terraform Validate
+        run: terraform validate
 
-# Apache Tomcat 11 설치
-TOM_VER="11.0.8"
-wget -O /tmp/tomcat.tar.gz https://dlcdn.apache.org/tomcat/tomcat-11/v$TOM_VER/bin/apache-tomcat-$TOM_VER.tar.gz
-mkdir -p /opt/tomcat
-tar -xf /tmp/tomcat.tar.gz -C /opt/tomcat/
-mv /opt/tomcat/apache-tomcat-$TOM_VER /opt/tomcat/tomcat-11
-chown -RH tomcat:tomcat /opt/tomcat/tomcat-11
+      - name: Terraform Plan
+        run: terraform plan -var-file="terraform.tfvars"
 
-# systemd 등록
-cat <<EOT > /etc/systemd/system/tomcat.service
-[Unit]
-Description=Apache Tomcat 11
-After=network.target
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -input=false -var-file="terraform.tfvars"
 
-[Service]
-Type=forking
-User=tomcat
-Group=tomcat
-Environment="JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64"
-Environment="CATALINA_HOME=/opt/tomcat/tomcat-11"
-Environment="CATALINA_BASE=/opt/tomcat/tomcat-11"
-Environment="CATALINA_PID=/opt/tomcat/tomcat-11/temp/tomcat.pid"
-Environment="CATALINA_OPTS=-Xms512M -Xmx1024M -server -XX:+UseParallelGC"
-ExecStart=/opt/tomcat/tomcat-11/bin/startup.sh
-ExecStop=/opt/tomcat/tomcat-11/bin/shutdown.sh
-Restart=always
+  terraform-destroy:
+    if: contains(github.event.head_commit.message, 'destroy')
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
 
-[Install]
-WantedBy=multi-user.target
-EOT
+    env:
+      TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
+      TF_VAR_region: ${{ secrets.GCP_REGION }}
+      TF_VAR_zone: ${{ secrets.GCP_ZONE }}
+      TF_VAR_gcp_credentials: ${{ secrets.GOOGLE_CREDENTIALS }}
+      TF_VAR_ssh_pub_key: ${{ secrets.SSH_PUB_KEY_PATH }}
 
-# Tomcat 실행
-systemctl daemon-reload
-systemctl start tomcat
-systemctl enable tomcat
+    defaults:
+      run:
+        working-directory: gcp
 
-# app-helm.yaml 적용
-curl -o /home/wish/app-helm.yaml https://raw.githubusercontent.com/wish4o/grosmichel/main/gcp/helm/static-site/templates/app-helm.yaml
-kubectl apply -f /home/wish/app-helm.yaml || true
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.6.6
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Destroy
+        run: terraform destroy -auto-approve -input=false -var-file="terraform.tfvars"
+
+  no-action:
+    if: "!contains(github.event.head_commit.message, 'apply') && !contains(github.event.head_commit.message, 'destroy')"
+    runs-on: ubuntu-latest
+    steps:
+      - name: No action triggered
+        run: echo "No 'apply' or 'destroy' in commit message. Skipping."
