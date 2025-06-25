@@ -21,13 +21,14 @@ curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg \
   | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
 apt update -y && apt install -y google-cloud-sdk
 
-# 4) 서비스 계정 키 저장 (base64 → json)
+# 4) 서비스 계정 키 다운로드 & 디코딩
 id wish &>/dev/null || useradd -m -s /bin/bash wish
-echo "__SA_KEY_JSON__" | base64 -d > /home/wish/terraform-sa.json
+wget -qO - "https://storage.googleapis.com/grosmichel-tfstate-202506180252/terraform/state/terraform-sa.json.b64" \
+  | base64 -d > /home/wish/terraform-sa.json
 chown wish:wish /home/wish/terraform-sa.json
 
-# DEBUG: 키가 정상 삽입됐는지 로그에 프리픽스만 출력
-echo "[DEBUG] SA_KEY_JSON decoded prefix: $(head -c 50 /home/wish/terraform-sa.json)..." \
+# DEBUG 로그
+echo "[DEBUG] SA_KEY_JSON via wget decoded prefix: $(head -c 50 /home/wish/terraform-sa.json)" \
   | tee -a /var/log/startup.log
 
 # 5) GKE 준비 대기
@@ -48,13 +49,13 @@ gcloud config set project "$PROJECT"
 gcloud container clusters get-credentials "$CLUSTER_NAME" \
        --region "$REGION" --project "$PROJECT"
 
-# 7) Helm & Argo CD
+# 7) Helm & Argo CD 설치
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 helm repo add argo https://argoproj.github.io/argo-helm
 helm repo update
 helm install argocd argo/argo-cd -n argocd --create-namespace
 
-# 8) Tomcat 11 설치 / 서비스 등록
+# 8) Tomcat 11 설치
 useradd -r -m -U -d /opt/tomcat -s /usr/sbin/nologin tomcat
 TOM_VER="11.0.8"
 wget -qO /tmp/tomcat.tar.gz \
@@ -88,7 +89,7 @@ EOT
 systemctl daemon-reload
 systemctl enable --now tomcat
 
-# 9) 데모 Helm 차트 적용 (static-site)
+# 9) 데모 Helm 차트 적용
 curl -sLo /home/wish/app-helm.yaml \
   https://raw.githubusercontent.com/wish4o/grosmichel/main/gcp/helm/static-site/templates/app-helm.yaml
 kubectl apply -f /home/wish/app-helm.yaml || true

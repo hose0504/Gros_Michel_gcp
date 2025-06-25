@@ -13,18 +13,17 @@ jobs:
 
     env:
       TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
-      TF_VAR_region: ${{ secrets.GCP_REGION }}
-      TF_VAR_zone: ${{ secrets.GCP_ZONE }}
+      TF_VAR_region:     ${{ secrets.GCP_REGION }}
+      TF_VAR_zone:       ${{ secrets.GCP_ZONE }}
       TF_VAR_gcp_credentials: ${{ secrets.GOOGLE_CREDENTIALS }}
-      TF_VAR_ssh_pub_key: ${{ secrets.SSH_PUB_KEY_PATH }}
-      SA_KEY_JSON: ${{ secrets.SA_KEY_JSON }}
+      TF_VAR_ssh_pub_key:     ${{ secrets.SSH_PUB_KEY_PATH }}
 
     defaults:
       run:
         working-directory: gcp
 
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Set up Terraform
@@ -37,10 +36,10 @@ jobs:
         with:
           credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
 
-      - name: Generate user-data.template from startup.sh (with sed)
+      # ▶️  startup.sh 그대로 user-data.template 로 복사
+      - name: Copy startup.sh → user-data.template
         run: |
-          sed "s|__SA_KEY_JSON__|${SA_KEY_JSON}|g" \
-            modules/instance/startup.sh > modules/instance/user-data.template
+          cp modules/instance/startup.sh modules/instance/user-data.template
 
       - name: Terraform Init
         run: terraform init
@@ -63,18 +62,18 @@ jobs:
     timeout-minutes: 50
 
     env:
-      TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
-      TF_VAR_region: ${{ secrets.GCP_REGION }}
-      TF_VAR_zone: ${{ secrets.GCP_ZONE }}
+      TF_VAR_project_id:      ${{ secrets.GCP_PROJECT_ID }}
+      TF_VAR_region:          ${{ secrets.GCP_REGION }}
+      TF_VAR_zone:            ${{ secrets.GCP_ZONE }}
       TF_VAR_gcp_credentials: ${{ secrets.GOOGLE_CREDENTIALS }}
-      TF_VAR_ssh_pub_key: ${{ secrets.SSH_PUB_KEY_PATH }}
+      TF_VAR_ssh_pub_key:     ${{ secrets.SSH_PUB_KEY_PATH }}
 
     defaults:
       run:
         working-directory: gcp
 
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Set up Terraform
