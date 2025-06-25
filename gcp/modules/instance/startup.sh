@@ -20,17 +20,14 @@ mv kubectl /usr/local/bin/
 # -----------------------
 # gcloud CLI 설치
 # -----------------------
-echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt cloud-sdk main" \
-  | tee /etc/apt/sources.list.d/google-cloud-sdk.list
-curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg \
-  | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt cloud-sdk main" | tee /etc/apt/sources.list.d/google-cloud-sdk.list
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
 apt update -y && apt install -y google-cloud-sdk
 
 # -----------------------
-# 서비스 계정 키 다운로드
-# (GCS에서 공개 접근 가능하도록 설정되어 있어야 함)
+# 서비스 계정 키 삽입 (GitHub Actions에서 치환된 값 사용)
 # -----------------------
-curl -o /root/terraform-sa.json https://storage.googleapis.com/grosmichel-tfstate-202506180252/terraform/state/skillful-cortex-463200-a7-f2c2c2dad05d.json
+echo '${SA_KEY_JSON}' > /root/terraform-sa.json
 
 # -----------------------
 # GKE 클러스터 준비될 때까지 대기
