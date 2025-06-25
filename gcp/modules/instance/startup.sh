@@ -18,7 +18,7 @@ apt update -y && apt install -y google-cloud-sdk
 
 # 서비스 계정 키 삽입
 cat <<EOF > /home/wish/terraform-sa.json
-${SA_KEY_JSON}
+__SA_KEY_JSON__
 EOF
 
 # GKE 클러스터 준비 대기
