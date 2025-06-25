@@ -37,10 +37,10 @@ jobs:
         with:
           credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
 
-      - name: Generate user-data.template from startup.sh
-        run: |
-          mkdir -p gcp
-          envsubst < modules/instance/startup.sh > gcp/user-data.template
+      - name: Generate user-data.template from startup.sh (with sed)
+  run: |
+    sed "s|__SA_KEY_JSON__|${SA_KEY_JSON}|g" modules/instance/startup.sh > modules/instance/user-data.template
+
 
       - name: Terraform Init
         run: terraform init

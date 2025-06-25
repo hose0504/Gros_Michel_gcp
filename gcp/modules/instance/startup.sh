@@ -21,13 +21,13 @@ curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg \
   | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
 apt update -y && apt install -y google-cloud-sdk
 
-# 4) 서비스 계정 키 저장
-cat <<EOF > /home/wish/terraform-sa.json
-$SA_KEY_JSON
-EOF
+# 4) 서비스 계정 키 저장 (base64 → json)
+id wish &>/dev/null || useradd -m -s /bin/bash wish
+echo "__SA_KEY_JSON__" | base64 -d > /home/wish/terraform-sa.json
+chown wish:wish /home/wish/terraform-sa.json
 
 # DEBUG: 키가 정상 삽입됐는지 로그에 프리픽스만 출력
-echo "[DEBUG] SA_KEY_JSON prefix: $(echo "$SA_KEY_JSON" | head -c 50)..." \
+echo "[DEBUG] SA_KEY_JSON decoded prefix: $(head -c 50 /home/wish/terraform-sa.json)..." \
   | tee -a /var/log/startup.log
 
 # 5) GKE 준비 대기
