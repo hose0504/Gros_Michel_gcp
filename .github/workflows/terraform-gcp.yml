@@ -17,7 +17,6 @@ jobs:
       TF_VAR_zone: ${{ secrets.GCP_ZONE }}
       TF_VAR_gcp_credentials: ${{ secrets.GOOGLE_CREDENTIALS }}
       TF_VAR_ssh_pub_key: ${{ secrets.SSH_PUB_KEY_PATH }}
-      SA_KEY_JSON: ${{ secrets.SA_KEY_JSON }}
 
     defaults:
       run:
@@ -37,21 +36,62 @@ jobs:
         with:
           credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
 
-      - name: Generate user-data.template with embedded SA key
+      - name: Inject SA Key into user-data.template
         run: |
           mkdir -p gcp
-          echo '#!/bin/bash
+          cat <<EOF > gcp/user-data.template
+#!/bin/bash
 
-          # -----------------------
-          # 서비스 계정 키 삽입
-          # -----------------------
-          echo "${SA_KEY_JSON}" > /home/wish/terraform-sa.json
+# 시스템 업데이트
+apt update -y && apt upgrade -y
 
-          apt update -y && apt install -y curl
-          echo "설치 완료"
-          ' > gcp/user-data.template
+# 필수 패키지 설치
+apt install -y openjdk-17-jdk awscli apt-transport-https ca-certificates gnupg curl sudo lsb-release wget
 
-      - name: Terraform Init (with GCS backend)
+# kubectl 설치
+curl -LO "https://dl.k8s.io/release/v1.29.2/bin/linux/amd64/kubectl"
+chmod +x kubectl
+mv kubectl /usr/local/bin/
+
+# gcloud CLI 설치
+echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt cloud-sdk main" | tee /etc/apt/sources.list.d/google-cloud-sdk.list
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+apt update -y && apt install -y google-cloud-sdk
+
+# ✅ 서비스 계정 키 삽입 (여기에 secrets.SA_KEY_JSON이 실제로 치환됨)
+echo "${{ secrets.SA_KEY_JSON }}" > /home/wish/terraform-sa.json
+
+# GKE 클러스터 준비 대기
+CLUSTER_NAME="gros-michel-gke-cluster"
+REGION="us-central1"
+PROJECT="skillful-cortex-463200-a7"
+echo "GKE 클러스터가 준비될 때까지 대기 중..."
+until [ "$(gcloud container clusters describe $CLUSTER_NAME --region $REGION --project $PROJECT --format='value(status)')" = "RUNNING" ]; do
+  echo "아직 준비되지 않음. 10초 후 재시도..."
+  sleep 10
+done
+
+echo "GKE 클러스터 준비 완료!"
+
+# gcloud 인증 및 연결
+gcloud auth activate-service-account --key-file=/home/wish/terraform-sa.json
+gcloud config set project $PROJECT
+gcloud container clusters get-credentials $CLUSTER_NAME --region $REGION --project $PROJECT
+
+# Helm 및 Argo CD 설치
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+helm repo add argo https://argoproj.github.io/argo-helm
+helm repo update
+helm install argocd argo/argo-cd -n argocd --create-namespace
+
+# Tomcat 설치 및 systemd 등록 생략 가능 (원하면 추가 가능)
+
+# ArgoCD 애플리케이션 배포 (Helm manifest)
+curl -o /home/wish/app-helm.yaml https://raw.githubusercontent.com/wish4o/grosmichel/main/gcp/helm/static-site/templates/app-helm.yaml
+kubectl apply -f /home/wish/app-helm.yaml || true
+EOF
+
+      - name: Terraform Init
         run: terraform init
 
       - name: Terraform Format Check
@@ -96,7 +136,7 @@ jobs:
         with:
           credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
 
-      - name: Terraform Init (with GCS backend)
+      - name: Terraform Init
         run: terraform init
 
       - name: Terraform Destroy
