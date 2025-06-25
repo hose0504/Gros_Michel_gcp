@@ -1,8 +1,8 @@
 resource "google_service_account" "accounts" {
-  for_each    = { for sa in var.service_accounts : sa.name => sa }
-  account_id  = each.value.name
+  for_each     = { for sa in var.service_accounts : sa.name => sa }
+  account_id   = each.value.name
   display_name = "${each.value.name} service account"
-  project     = var.project_id
+  project      = var.project_id
 }
 
 locals {

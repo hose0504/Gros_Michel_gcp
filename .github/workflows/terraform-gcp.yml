@@ -37,11 +37,12 @@ jobs:
         with:
           credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
 
-      - name: Copy startup.sh to user-data.template
+      # ✅ startup.sh -> user-data.template로 치환 생성
+      - name: Generate user-data.template from startup.sh
         run: |
-          # 현재 워크플로는 working-directory: gcp 기준으로 돌아가므로
-          # 상대 경로는 gcp/ 이하가 아니라 modules/instance 부터 시작
-          cp modules/instance/startup.sh user-data.template
+          mkdir -p gcp
+          echo "SA_KEY_JSON=\${SA_KEY_JSON}" >> $GITHUB_ENV
+          envsubst < gcp/modules/instance/startup.sh > gcp/user-data.template
 
       - name: Terraform Init
         run: terraform init

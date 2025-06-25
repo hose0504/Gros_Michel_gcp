@@ -105,5 +105,3 @@ variable "ssh_pub_key" {
   description = "SSH 공개키 전체 문자열 (e.g. ssh-rsa ...)"
   type        = string
 }
-
-
