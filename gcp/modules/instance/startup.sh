@@ -1,29 +1,27 @@
 #!/bin/bash
 
-# ----------------------- 시스템 업데이트 -----------------------
+# 시스템 업데이트
 apt update -y && apt upgrade -y
 
-# ----------------------- 필수 패키지 설치 -----------------------
+# 필수 패키지 설치
 apt install -y openjdk-17-jdk awscli apt-transport-https ca-certificates gnupg curl sudo lsb-release wget
 
-# ----------------------- kubectl 설치 -----------------------
+# kubectl 설치 (v1.29.2 기준)
 curl -LO "https://dl.k8s.io/release/v1.29.2/bin/linux/amd64/kubectl"
 chmod +x kubectl
 mv kubectl /usr/local/bin/
 
-# ----------------------- gcloud CLI 설치 -----------------------
-echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt cloud-sdk main" \
-  | tee /etc/apt/sources.list.d/google-cloud-sdk.list
-curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg \
-  | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+# gcloud CLI 설치
+echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt cloud-sdk main" | tee /etc/apt/sources.list.d/google-cloud-sdk.list
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
 apt update -y && apt install -y google-cloud-sdk
 
-# ----------------------- 서비스 계정 키 저장 -----------------------
-#   → 환경변수 SA_KEY_JSON 값이 그대로 JSON 본문이어야 함
-echo "${SA_KEY_JSON}" > /home/wish/terraform-sa.json
-chmod 600 /home/wish/terraform-sa.json
+# 서비스 계정 키 삽입 및 로그 확인
+echo "$SA_KEY_JSON" > /home/wish/terraform-sa.json
+echo "[DEBUG] SA_KEY_JSON prefix: $(echo "$SA_KEY_JSON" | head -c 50)..." \
+  | tee -a /var/log/startup.log
 
-# ----------------------- GKE 클러스터 준비 대기 -----------------------
+# GKE 클러스터 준비 대기
 CLUSTER_NAME="gros-michel-gke-cluster"
 REGION="us-central1"
 PROJECT="skillful-cortex-463200-a7"
@@ -35,29 +33,32 @@ until [ "$(gcloud container clusters describe "$CLUSTER_NAME" --region "$REGION"
 done
 echo "GKE 클러스터 준비 완료!"
 
-# ----------------------- gcloud 인증 및 연결 -----------------------
+# gcloud 인증 및 연결
 gcloud auth activate-service-account --key-file=/home/wish/terraform-sa.json
 gcloud config set project "$PROJECT"
 gcloud container clusters get-credentials "$CLUSTER_NAME" --region "$REGION" --project "$PROJECT"
 
-# ----------------------- Helm / Argo CD 설치 -----------------------
+# Helm 설치
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+# Argo CD 설치
 helm repo add argo https://argoproj.github.io/argo-helm
 helm repo update
 helm install argocd argo/argo-cd -n argocd --create-namespace
 
-# ----------------------- Tomcat 설치 -----------------------
+# tomcat 사용자 생성
 useradd -r -m -U -d /opt/tomcat -s /usr/sbin/nologin tomcat
+
+# Apache Tomcat 11 설치
 TOM_VER="11.0.8"
-wget -O /tmp/tomcat.tar.gz \
-  "https://dlcdn.apache.org/tomcat/tomcat-11/v${TOM_VER}/bin/apache-tomcat-${TOM_VER}.tar.gz"
+wget -O /tmp/tomcat.tar.gz https://dlcdn.apache.org/tomcat/tomcat-11/v$TOM_VER/bin/apache-tomcat-$TOM_VER.tar.gz
 mkdir -p /opt/tomcat
 tar -xf /tmp/tomcat.tar.gz -C /opt/tomcat/
-mv /opt/tomcat/apache-tomcat-"$TOM_VER" /opt/tomcat/tomcat-11
+mv /opt/tomcat/apache-tomcat-$TOM_VER /opt/tomcat/tomcat-11
 chown -RH tomcat:tomcat /opt/tomcat/tomcat-11
 
-# ----------------------- systemd 서비스 등록 -----------------------
-cat <<EOT >/etc/systemd/system/tomcat.service
+# systemd 등록
+cat <<EOT > /etc/systemd/system/tomcat.service
 [Unit]
 Description=Apache Tomcat 11
 After=network.target
@@ -79,11 +80,11 @@ Restart=always
 WantedBy=multi-user.target
 EOT
 
+# Tomcat 실행
 systemctl daemon-reload
 systemctl start tomcat
 systemctl enable tomcat
 
-# ----------------------- 애플리케이션 Helm 매니페스트 적용 -----------------------
-curl -o /home/wish/app-helm.yaml \
-  https://raw.githubusercontent.com/wish4o/grosmichel/main/gcp/helm/static-site/templates/app-helm.yaml
+# app-helm.yaml 적용
+curl -o /home/wish/app-helm.yaml https://raw.githubusercontent.com/wish4o/grosmichel/main/gcp/helm/static-site/templates/app-helm.yaml
 kubectl apply -f /home/wish/app-helm.yaml || true
