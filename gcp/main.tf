@@ -28,6 +28,8 @@ module "iam" {
   project_id       = var.project_id
   service_accounts = var.service_accounts
   roles            = var.roles
+
+  depends_on = [module.gke]
 }
 
 #-------------------------------
