@@ -1,12 +1,10 @@
-# 서비스 계정 생성
 resource "google_service_account" "accounts" {
-  for_each = { for sa in var.service_accounts : sa.name => sa }
-
-  account_id   = each.value.name
+  for_each    = { for sa in var.service_accounts : sa.name => sa }
+  account_id  = each.value.name
   display_name = "${each.value.name} service account"
+  project     = var.project_id
 }
 
-# 중첩 for는 local에서 먼저 처리
 locals {
   iam_bindings = flatten([
     for sa in var.service_accounts : [
@@ -19,13 +17,14 @@ locals {
   ])
 }
 
-# IAM 역할 바인딩
-data "google_service_account" "accounts" {
+resource "google_project_iam_member" "bindings" {
   for_each = {
-    for sa in var.service_accounts : sa.name => sa
+    for b in local.iam_bindings : b.key => b
   }
 
-  account_id = each.value.name
-  project    = var.project_id
-}
+  project = var.project_id
+  role    = each.value.role
+  member  = "serviceAccount:${each.value.sa_email}"
 
+  depends_on = [google_service_account.accounts]
+}

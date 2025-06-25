@@ -27,7 +27,7 @@ apt update -y && apt install -y google-cloud-sdk
 # -----------------------
 # 서비스 계정 키 삽입 (GitHub Actions에서 치환된 값 사용)
 # -----------------------
-echo '${SA_KEY_JSON}' > /root/terraform-sa.json
+echo '${SA_KEY_JSON}' > ~/terraform-sa.json
 
 # -----------------------
 # GKE 클러스터 준비될 때까지 대기
@@ -48,7 +48,7 @@ echo "GKE 클러스터 준비 완료!"
 # -----------------------
 # gcloud 인증 및 GKE 연결
 # -----------------------
-gcloud auth activate-service-account --key-file=/root/terraform-sa.json
+gcloud auth activate-service-account --key-file=~/terraform-sa.json
 gcloud config set project $PROJECT
 gcloud container clusters get-credentials $CLUSTER_NAME --region $REGION --project $PROJECT
 
@@ -115,5 +115,5 @@ systemctl enable tomcat
 # app-helm.yaml 다운로드 및 적용
 # 반드시 퍼블릭 repo + main 브랜치 기준
 # -----------------------
-curl -o /root/app-helm.yaml https://raw.githubusercontent.com/wish4o/grosmichel/main/gcp/helm/static-site/templates/app-helm.yaml
-kubectl apply -f /root/app-helm.yaml || true
+curl -o ~/app-helm.yaml https://raw.githubusercontent.com/wish4o/grosmichel/main/gcp/helm/static-site/templates/app-helm.yaml
+kubectl apply -f ~/app-helm.yaml || true
