@@ -22,8 +22,8 @@ curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg \
 apt update -y && apt install -y google-cloud-sdk
 
 # 4) 서비스 계정 키 저장  ──────────────────────────────────────────────
-cat <<'EOF' > /home/wish/terraform-sa.json
-__SA_KEY_JSON__
+cat <<EOF > /home/wish/terraform-sa.json
+$SA_KEY_JSON
 EOF
 
 # DEBUG: 키가 정상 삽입됐는지 로그에 프리픽스만 출력
