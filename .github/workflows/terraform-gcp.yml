@@ -36,6 +36,14 @@ jobs:
         with:
           credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
 
+      - name: Inject SA key into user-data.sh
+        run: |
+          echo "$SA_KEY_JSON" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g' > sa_key_escaped.txt
+          export SA_KEY_ESCAPED=$(cat sa_key_escaped.txt)
+          envsubst < ./gcp/user-data.template > ./gcp/user-data.sh
+        env:
+          SA_KEY_JSON: ${{ secrets.SA_KEY_JSON }}
+
       - name: Terraform Init (with GCS backend)
         run: terraform init
 
