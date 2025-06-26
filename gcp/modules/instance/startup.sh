@@ -2,7 +2,7 @@
 ###############################################################################
 # Gros-Michel bastion – startup script (user-data)
 ###############################################################################
-set -euo pipefail            # ⇦ 스크립트 어느 부분이든 오류 나면 즉시 종료
+set -euo pipefail
 
 #######################################
 # 0) 공통 변수
@@ -38,13 +38,13 @@ curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg \
 apt update -y
 apt install -y google-cloud-sdk google-cloud-sdk-gke-gcloud-auth-plugin
 echo 'export USE_GKE_GCLOUD_AUTH_PLUGIN=True' >/etc/profile.d/gcloud-auth.sh
-export USE_GKE_GCLOUD_AUTH_PLUGIN=True   # 현재 셸에도 즉시 적용
+export USE_GKE_GCLOUD_AUTH_PLUGIN=True
 
 #######################################
 # 4) wish 계정 & 서비스 계정 키
 #######################################
 id wish &>/dev/null || useradd -m -s /bin/bash wish
-wget -qO - "${SA_JSON_B64_URL}" | base64 -d >/home/wish/terraform-sa.json
+wget -qO - "$SA_JSON_B64_URL" | base64 -d >/home/wish/terraform-sa.json
 chown wish:wish /home/wish/terraform-sa.json
 echo "[DEBUG] SA_KEY_JSON prefix: $(head -c 50 /home/wish/terraform-sa.json)" \
   | tee -a /var/log/startup.log
@@ -123,11 +123,14 @@ systemctl daemon-reload
 systemctl enable --now tomcat
 
 #######################################
-# 10) 데모 Helm 차트 적용
+# 10) API 서버 안정화 대기 (30초)
 #######################################
-sudo -u wish -E bash <<'EOSU'
-  export USE_GKE_GCLOUD_AUTH_PLUGIN=True
-  kubectl apply -f '"${APP_HELM_URL}"' --validate=false || true
-EOSU
+sleep 30
+
+#######################################
+# 11) 데모 Helm 차트 적용
+#######################################
+sudo -u wish USE_GKE_GCLOUD_AUTH_PLUGIN=True \
+  kubectl apply -f "$APP_HELM_URL" --validate=false || true
 
 echo "🎉  Bastion startup script completed."
