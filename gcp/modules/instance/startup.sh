@@ -36,6 +36,11 @@ PROJECT="skillful-cortex-463200-a7"
 gcloud auth activate-service-account --key-file=/home/wish/terraform-sa.json
 gcloud config set project "$PROJECT"
 
+# 인증 상태 로그로 출력
+echo "[DEBUG] Auth List: $(gcloud auth list --filter=status:ACTIVE --format='value(account)')" \
+  | tee -a /var/log/startup.log
+
+
 # 6) GKE 클러스터 준비 대기
 CLUSTER_NAME="gros-michel-gke-cluster"
 REGION="us-central1"
