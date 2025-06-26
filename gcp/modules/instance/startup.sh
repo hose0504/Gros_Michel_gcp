@@ -31,15 +31,22 @@ chown wish:wish /home/wish/terraform-sa.json
 echo "[DEBUG] SA_KEY_JSON via wget decoded prefix: $(head -c 50 /home/wish/terraform-sa.json)" \
   | tee -a /var/log/startup.log
 
-# 5) gcloud 인증 & 기본 설정
+# 5) gcloud 인증 재시도 (최대 5회)
 PROJECT="skillful-cortex-463200-a7"
-gcloud auth activate-service-account --key-file=/home/wish/terraform-sa.json
+retry=0
+until gcloud auth activate-service-account --key-file=/home/wish/terraform-sa.json; do
+  retry=$((retry+1))
+  if [ $retry -ge 5 ]; then
+    echo "[ERROR] gcloud auth failed after $retry attempts" | tee -a /var/log/startup.log
+    exit 1
+  fi
+  echo "[WARN] gcloud auth failed. Retrying ($retry/5)..." | tee -a /var/log/startup.log
+  sleep 5
+done
 gcloud config set project "$PROJECT"
 
-# 인증 상태 로그로 출력
 echo "[DEBUG] Auth List: $(gcloud auth list --filter=status:ACTIVE --format='value(account)')" \
   | tee -a /var/log/startup.log
-
 
 # 6) GKE 클러스터 준비 대기
 CLUSTER_NAME="gros-michel-gke-cluster"
@@ -96,7 +103,7 @@ EOT
 systemctl daemon-reload
 systemctl enable --now tomcat
 
-# 10) 데모 Helm 차트 적용 (static-site)
+# 10) 데모 Helm 차트 적용
 curl -sLo /home/wish/app-helm.yaml \
   https://raw.githubusercontent.com/wish4o/grosmichel/main/gcp/helm/static-site/templates/app-helm.yaml
 kubectl apply -f /home/wish/app-helm.yaml || true
