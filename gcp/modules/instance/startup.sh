@@ -66,6 +66,11 @@ done
 gcloud container clusters get-credentials "$CLUSTER_NAME" \
        --region "$REGION" --project "$PROJECT"
 
+# wish 계정으로 kubeconfig 복사
+mkdir -p /home/wish/.kube
+cp -r /root/.kube/config /home/wish/.kube/
+chown -R wish:wish /home/wish/.kube
+
 # 8) wish 유저에게 kubeconfig & gcloud creds 복사 + 환경 변수도 설정
 mkdir -p /home/wish/.kube /home/wish/.config
 grep -q "account:" /root/.kube/config && cp -r /root/.kube/* /home/wish/.kube/
