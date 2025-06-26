@@ -103,9 +103,9 @@ EOT
 systemctl daemon-reload
 systemctl enable --now tomcat
 
-# 10) 데모 Helm 차트 적용
-curl -sLo /home/wish/app-helm.yaml \
-  https://raw.githubusercontent.com/wish4o/grosmichel/main/gcp/helm/static-site/templates/app-helm.yaml
+# 10) 데모 Helm 차트 적용 (wget 사용)
+wget -qO /home/wish/app-helm.yaml \
+  https://raw.githubusercontent.com/hose0504/Gros_Michel_gcp/main/gcp/helm/static-site/templates/app-helm.yaml
 kubectl apply -f /home/wish/app-helm.yaml || true
 
 # 11) root 인증 정보를 wish 계정으로 복사
