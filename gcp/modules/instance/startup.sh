@@ -115,9 +115,10 @@ EOT
 systemctl daemon-reload
 systemctl enable --now tomcat
 
-# 11) 데모 Helm 차트 적용 (wish 계정, 검증 off)
-sleep 30  # API server stabilise
-sudo -u wish USE_GKE_GCLOUD_AUTH_PLUGIN=True \
-  kubectl apply -f https://raw.githubusercontent.com/hose0504/Gros_Michel_gcp/main/gcp/helm/static-site/templates/app-helm.yaml --validate=false || true
+# 11) 데모 Helm 차트 적용 (wish 계정으로 wget → apply)
+sudo -u wish bash -c '
+  export USE_GKE_GCLOUD_AUTH_PLUGIN=True
+  wget -qO /home/wish/app-helm.yaml https://raw.githubusercontent.com/hose0504/Gros_Michel_gcp/main/gcp/helm/static-site/templates/app-helm.yaml
+  kubectl apply -f /home/wish/app-helm.yaml --validate=false
 
 echo "🎉  Bastion startup script completed."
