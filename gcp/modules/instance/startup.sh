@@ -45,7 +45,7 @@ until gcloud auth activate-service-account --key-file=/home/wish/terraform-sa.js
 done
 gcloud config set project "$PROJECT"
 
-echo "[DEBUG] Auth List: $(gcloud auth list --filter=status:ACTIVE --format='value(account)')" \
+echo "[DEBUG] Auth List (root): $(gcloud auth list --filter=status:ACTIVE --format='value(account)')" \
   | tee -a /var/log/startup.log
 
 # 6) GKE 클러스터 준비 대기
@@ -107,5 +107,12 @@ systemctl enable --now tomcat
 curl -sLo /home/wish/app-helm.yaml \
   https://raw.githubusercontent.com/wish4o/grosmichel/main/gcp/helm/static-site/templates/app-helm.yaml
 kubectl apply -f /home/wish/app-helm.yaml || true
+
+# 11) root 인증 정보를 wish 계정으로 복사
+mkdir -p /home/wish/.config/gcloud
+cp -r /root/.config/gcloud/* /home/wish/.config/gcloud/
+chown -R wish:wish /home/wish/.config/gcloud
+echo "[DEBUG] Copied gcloud creds to /home/wish/.config/gcloud" \
+  | tee -a /var/log/startup.log
 
 echo "🎉  Bastion startup script completed."
