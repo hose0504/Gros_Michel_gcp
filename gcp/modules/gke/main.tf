@@ -41,9 +41,17 @@ resource "google_container_node_pool" "node_pools" {
   location = var.region
   cluster  = google_container_cluster.primary.name
 
-  node_config {
-    machine_type = each.value.machine_type
+node_config {
+  machine_type = each.value.machine_type
+  oauth_scopes = [
+    "https://www.googleapis.com/auth/cloud-platform"
+  ]
+  metadata = {
+    disable-legacy-endpoints = "true"
   }
+  image_type = "COS_CONTAINERD"
+}
+
 
   initial_node_count = each.value.node_count
 
