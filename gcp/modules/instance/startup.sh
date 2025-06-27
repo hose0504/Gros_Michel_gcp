@@ -77,6 +77,20 @@ for i in {1..5}; do
   " && break || sleep 30
 done
 
+# argocd 네임스페이스 생성
+kubectl create namespace argocd 2>/dev/null || true
+
+# ArgoCD 설치 (CRD 포함)
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+# CRD 설치될 때까지 대기
+echo "⏳ Waiting for ArgoCD CRDs to be ready..."
+for i in {1..10}; do
+  kubectl get crd applications.argoproj.io &>/dev/null && echo "✅ ArgoCD CRD ready" && break
+  echo "⏳ Still waiting for ArgoCD CRD... ($i/10)"
+  sleep 5
+done
+
 # 10) Helm 차트 적용
 sudo -u wish bash -c "
   export USE_GKE_GCLOUD_AUTH_PLUGIN=True
