@@ -66,14 +66,13 @@ done
 gcloud container clusters get-credentials "$CLUSTER_NAME" \
        --region "$REGION" --project "$PROJECT"
 
-# 7.5) wish 계정으로 GKE credentials 재등록 (kubectl 정상 동작을 위해)
-sudo -u wish bash -c 'USE_GKE_GCLOUD_AUTH_PLUGIN=True gcloud container clusters get-credentials gros-michel-gke-cluster --region us-central1 --project skillful-cortex-463200-a7'
-
-
-# wish 계정으로 kubeconfig 복사
-mkdir -p /home/wish/.kube
-cp -r /root/.kube/config /home/wish/.kube/
-chown -R wish:wish /home/wish/.kube
+# ✅ wish 계정으로 config 생성
+sudo -u wish bash -c '
+  export USE_GKE_GCLOUD_AUTH_PLUGIN=True
+  mkdir -p /home/wish/.kube
+  gcloud container clusters get-credentials gros-michel-gke-cluster \
+    --region us-central1 --project skillful-cortex-463200-a7
+'
 
 # 8) wish 유저에게 kubeconfig & gcloud creds 복사 + 환경 변수도 설정
 mkdir -p /home/wish/.kube /home/wish/.config
