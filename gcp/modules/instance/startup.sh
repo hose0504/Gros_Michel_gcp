@@ -90,7 +90,7 @@ done
 
 # 10) kubectl 연결 확인
 for i in {1..10}; do
-  if kubectl get nodes &>/dev/null; then
+  if sudo -u wish kubectl get nodes &>/dev/null; then
     echo "✅ kubectl connected to cluster"
     break
   fi
@@ -98,26 +98,29 @@ for i in {1..10}; do
   sleep 5
 done
 
-# 11) ArgoCD 네임스페이스 생성
-kubectl create namespace argocd 2>/dev/null || true
+# 11~13) Argo CD 설치 (wish 계정에서 실행)
+sudo -u wish bash -c "
+  export USE_GKE_GCLOUD_AUTH_PLUGIN=True
 
-# 12) ArgoCD 설치 with 재시도
-for i in {1..5}; do
-  kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml && break
-  echo "⏳ ArgoCD install attempt ($i/5) failed. Retrying in 10 sec..."
-  sleep 10
-done
+  echo '📁 Creating ArgoCD namespace...'
+  kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
 
-# 13) ArgoCD CRD 설치 대기 + 안정성 보강
-echo "⏳ Waiting for ArgoCD CRDs to be ready..."
-for i in {1..10}; do
-  kubectl get crd applications.argoproj.io &>/dev/null && echo "✅ ArgoCD CRD ready" && break
-  echo "⏳ Still waiting for ArgoCD CRD... ($i/10)"
-  sleep 5
-done
+  echo '🚀 Installing ArgoCD...'
+  for i in {1..5}; do
+    kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml && break
+    echo '[WARN] ArgoCD install attempt ($i/5) failed. Retrying in 10 sec...'
+    sleep 10
+  done
 
-# ✅ CRD 조건까지 명확히 대기
-kubectl wait --for=condition=Established crd/applications.argoproj.io --timeout=60s || true
+  echo '⏳ Waiting for ArgoCD CRD to be ready...'
+  for i in {1..10}; do
+    kubectl get crd applications.argoproj.io &>/dev/null && echo '✅ ArgoCD CRD ready' && break
+    echo '[WAIT] Still waiting for CRD... ($i/10)'
+    sleep 5
+  done
+
+  kubectl wait --for=condition=Established crd/applications.argoproj.io --timeout=60s || true
+"
 
 # 14) Helm 차트 적용
 sudo -u wish bash -c "
