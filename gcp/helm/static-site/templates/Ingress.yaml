@@ -3,10 +3,11 @@ kind: Ingress
 metadata:
   name: web-ingress
   annotations:
-    kubernetes.io/ingress.class: "gce" # GKE용 Ingress Controller
-    cloud.google.com/backend-config: '{"default": "web-backend-config"}' # BackendConfig 적용
-    networking.gke.io/managed-certificates: grosmichel-cert # 🔐 인증서 연결
-    networking.gke.io/frontend-config: web-frontend-config # 🔁 HTTP → HTTPS 리다이렉트 설정 추가
+    kubernetes.io/ingress.class: "gce"
+    cloud.google.com/backend-config: '{"default": "web-backend-config"}'
+    networking.gke.io/managed-certificates: grosmichel-cert
+    networking.gke.io/frontend-config: web-frontend-config
+    networking.gke.io/static-ip: grosmichel-ip  
 spec:
   rules:
   - host: grosmichelus.com
@@ -19,4 +20,3 @@ spec:
             name: web-service
             port:
               number: 80
-  loadBalancerIP: 34.36.195.209
