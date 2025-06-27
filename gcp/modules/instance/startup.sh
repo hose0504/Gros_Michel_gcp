@@ -77,6 +77,17 @@ for i in {1..5}; do
   " && break || sleep 30
 done
 
+# 🔄 추가: kube-apiserver 응답 대기
+echo "⏳ Waiting for kube-apiserver to respond after credentials..."
+for i in {1..10}; do
+  if sudo -u wish kubectl cluster-info &>/dev/null; then
+    echo "✅ kube-apiserver is responding"
+    break
+  fi
+  echo "⏳ kube-apiserver not ready yet. Waiting ($i/10)..."
+  sleep 5
+done
+
 # 10) kubectl 연결 확인
 for i in {1..10}; do
   if kubectl get nodes &>/dev/null; then
