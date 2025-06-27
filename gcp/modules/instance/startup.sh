@@ -77,13 +77,27 @@ for i in {1..5}; do
   " && break || sleep 30
 done
 
-# argocd 네임스페이스 생성
+# 10) kubectl 연결 확인
+for i in {1..10}; do
+  if kubectl get nodes &>/dev/null; then
+    echo "✅ kubectl connected to cluster"
+    break
+  fi
+  echo "⏳ Waiting for kubectl to connect to cluster... ($i/10)"
+  sleep 5
+done
+
+# 11) argocd 네임스페이스 생성
 kubectl create namespace argocd 2>/dev/null || true
 
-# ArgoCD 설치 (CRD 포함)
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+# 12) ArgoCD 설치 with 재시도
+for i in {1..5}; do
+  kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml && break
+  echo "⏳ ArgoCD install attempt ($i/5) failed. Retrying in 10 sec..."
+  sleep 10
+done
 
-# CRD 설치될 때까지 대기
+# 13) CRD 설치될 때까지 대기
 echo "⏳ Waiting for ArgoCD CRDs to be ready..."
 for i in {1..10}; do
   kubectl get crd applications.argoproj.io &>/dev/null && echo "✅ ArgoCD CRD ready" && break
@@ -91,8 +105,7 @@ for i in {1..10}; do
   sleep 5
 done
 
-
-# 10) Helm 차트 적용
+# 14) Helm 차트 적용
 sudo -u wish bash -c "
   export USE_GKE_GCLOUD_AUTH_PLUGIN=True
   wget -qO /home/wish/app-helm.yaml https://raw.githubusercontent.com/hose0504/Gros_Michel_gcp/main/gcp/helm/static-site/templates/app-helm.yaml
