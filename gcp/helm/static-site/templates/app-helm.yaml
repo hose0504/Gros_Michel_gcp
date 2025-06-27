@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/hose0504/Gros_Michel_gcp.git
     targetRevision: HEAD
-    path: gcp/gcp/helm/static-site  # 예: charts/my-app
+    path: gcp/helm/static-site
     helm:
       valueFiles:
         - values.yaml
