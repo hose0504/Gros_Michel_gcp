@@ -19,3 +19,4 @@ spec:
             name: web-service
             port:
               number: 80
+  loadBalancerIP: 34.36.195.209
