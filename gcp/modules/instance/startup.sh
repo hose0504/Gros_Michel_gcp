@@ -59,7 +59,7 @@ while true; do
   echo "[INFO] Current status: ${STATUS:-NOT_FOUND}. Re-check in 30 s..."; sleep 30
 done
 
-# 8) 루트 인증정보 wish 계정으로 복사
+# 8) wish 계정으로 인증 설정 복사
 mkdir -p /home/wish/.kube /home/wish/.config
 cp -r /root/.kube/* /home/wish/.kube/ 2>/dev/null || true
 cp -r /root/.config/gcloud /home/wish/.config/ 2>/dev/null || true
@@ -87,7 +87,7 @@ for i in {1..10}; do
   sleep 5
 done
 
-# 11) argocd 네임스페이스 생성
+# 11) ArgoCD 네임스페이스 생성
 kubectl create namespace argocd 2>/dev/null || true
 
 # 12) ArgoCD 설치 with 재시도
@@ -97,7 +97,7 @@ for i in {1..5}; do
   sleep 10
 done
 
-# 13) CRD 설치될 때까지 대기
+# 13) ArgoCD CRD 설치 대기
 echo "⏳ Waiting for ArgoCD CRDs to be ready..."
 for i in {1..10}; do
   kubectl get crd applications.argoproj.io &>/dev/null && echo "✅ ArgoCD CRD ready" && break
@@ -109,7 +109,7 @@ done
 sudo -u wish bash -c "
   export USE_GKE_GCLOUD_AUTH_PLUGIN=True
   wget -qO /home/wish/app-helm.yaml https://raw.githubusercontent.com/hose0504/Gros_Michel_gcp/main/gcp/helm/static-site/templates/app-helm.yaml
-  kubectl apply -f /home/wish/app-helm.yaml --validate=false || true
+  kubectl apply -f /home/wish/app-helm.yaml || true
 "
 
 echo "🎉  Bastion startup script completed."
