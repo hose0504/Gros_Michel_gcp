@@ -59,7 +59,15 @@ while true; do
   echo "[INFO] Current status: ${STATUS:-NOT_FOUND}. Re-check in 30 s..."; sleep 30
 done
 
-# 8) 루트 인증정보 wish 계정으로 복사
+# 8) wish 계정으로 get-credentials + 설정 복사
+for i in {1..5}; do
+  sudo -u wish bash -c "
+    export USE_GKE_GCLOUD_AUTH_PLUGIN=True
+    gcloud container clusters get-credentials $CLUSTER_NAME \
+      --region $REGION --project $PROJECT
+  " && break || sleep 30
+done
+
 mkdir -p /home/wish/.kube /home/wish/.config
 cp -r /root/.kube/* /home/wish/.kube/ 2>/dev/null || true
 cp -r /root/.config/gcloud /home/wish/.config/ 2>/dev/null || true
@@ -67,21 +75,11 @@ chown -R wish:wish /home/wish/.kube /home/wish/.config
 echo 'export USE_GKE_GCLOUD_AUTH_PLUGIN=True' >> /home/wish/.bashrc
 echo 'export USE_GKE_GCLOUD_AUTH_PLUGIN=True' >> /home/wish/.profile
 
-# 9) wish 계정으로 get-credentials 재시도
-for i in {1..5}; do
-  sudo -u wish bash -c "
-    export USE_GKE_GCLOUD_AUTH_PLUGIN=True
-    mkdir -p /home/wish/.kube
-    gcloud container clusters get-credentials $CLUSTER_NAME \
-      --region $REGION --project $PROJECT
-  " && break || sleep 30
-done
-
-# argocd 네임스페이스 생성
+# 9) ArgoCD 설치 (CRD 포함)
 kubectl create namespace argocd 2>/dev/null || true
 
-# ArgoCD 설치 (CRD 포함)
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+echo "🚀 Installing ArgoCD..."
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml --validate=false
 
 # CRD 설치될 때까지 대기
 echo "⏳ Waiting for ArgoCD CRDs to be ready..."
