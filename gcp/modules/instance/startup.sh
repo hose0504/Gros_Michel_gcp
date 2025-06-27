@@ -97,13 +97,16 @@ for i in {1..5}; do
   sleep 10
 done
 
-# 13) ArgoCD CRD 설치 대기
+# 13) ArgoCD CRD 설치 대기 + 안정성 보강
 echo "⏳ Waiting for ArgoCD CRDs to be ready..."
 for i in {1..10}; do
   kubectl get crd applications.argoproj.io &>/dev/null && echo "✅ ArgoCD CRD ready" && break
   echo "⏳ Still waiting for ArgoCD CRD... ($i/10)"
   sleep 5
 done
+
+# ✅ CRD 조건까지 명확히 대기
+kubectl wait --for=condition=Established crd/applications.argoproj.io --timeout=60s || true
 
 # 14) Helm 차트 적용
 sudo -u wish bash -c "
