@@ -67,12 +67,14 @@ gcloud container clusters get-credentials "$CLUSTER_NAME" \
        --region "$REGION" --project "$PROJECT"
 
 # ✅ wish 계정으로 config 생성
-sudo -u wish bash -c '
-  export USE_GKE_GCLOUD_AUTH_PLUGIN=True
-  mkdir -p /home/wish/.kube
-  gcloud container clusters get-credentials gros-michel-gke-cluster \
-    --region us-central1 --project skillful-cortex-463200-a7
-'
+for i in {1..5}; do
+  sudo -u wish bash -c '
+    export USE_GKE_GCLOUD_AUTH_PLUGIN=True
+    mkdir -p /home/wish/.kube
+    gcloud container clusters get-credentials gros-michel-gke-cluster \
+      --region us-central1 --project skillful-cortex-463200-a7
+  ' && break || sleep 30
+done
 
 # 8) wish 유저에게 kubeconfig & gcloud creds 복사 + 환경 변수도 설정
 mkdir -p /home/wish/.kube /home/wish/.config
