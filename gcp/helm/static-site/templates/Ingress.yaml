@@ -4,10 +4,10 @@ metadata:
   name: web-ingress
   annotations:
     kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: grosmichel-ip
     cloud.google.com/backend-config: '{"default": "web-backend-config"}'
     networking.gke.io/managed-certificates: grosmichel-cert
     networking.gke.io/frontend-config: web-frontend-config
-    networking.gke.io/static-ip: grosmichel-ip  
 spec:
   rules:
   - host: grosmichelus.com
