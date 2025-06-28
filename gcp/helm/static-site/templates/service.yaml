@@ -9,7 +9,7 @@ spec:
   selector:
     app: web
   ports:
-    - name: http
+    - name: default
       protocol: TCP
       port: 80
       targetPort: 80
