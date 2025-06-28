@@ -4,7 +4,7 @@ metadata:
   name: web-service
   annotations:
     cloud.google.com/backend-config: '{"default": "web-backend-config"}'
-    cloud.google.com/neg: '{"ingress": true}'
+    
 spec:
   selector:
     app: web
