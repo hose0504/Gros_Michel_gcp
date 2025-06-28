@@ -18,5 +18,5 @@ ingress:
   hosts:
     - host: grosmichelus.com
       paths:
-        - path: /
+        - path: /template
           pathType: Prefix
