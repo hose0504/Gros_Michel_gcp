@@ -18,3 +18,9 @@ spec:
         image: jwh0722/web_v1en:latest
         ports:
         - containerPort: 80
+        readinessProbe:
+          httpGet:
+            path: /template
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 10
