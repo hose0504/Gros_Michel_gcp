@@ -7,7 +7,7 @@ spec:
   connectionDraining:
     drainingTimeoutSec: 60
   healthCheck:
-    checkIntervalSec: 60
+    checkIntervalSec: 30
     port: 80
     type: HTTP
     requestPath: /template
