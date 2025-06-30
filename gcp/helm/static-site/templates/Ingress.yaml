@@ -4,6 +4,7 @@ metadata:
   name: web-ingress
   annotations:
     kubernetes.io/ingress.class: "gce" # GKE용 Ingress Controller
+    kubernetes.io/ingress.global-static-ip-name: grosmichel-ip
     cloud.google.com/backend-config: '{"default": "web-backend-config"}' # BackendConfig 적용
     networking.gke.io/managed-certificates: grosmichel-cert # 🔐 인증서 연결
     networking.gke.io/frontend-config: web-frontend-config # 🔁 HTTP → HTTPS 리다이렉트 설정 추가
