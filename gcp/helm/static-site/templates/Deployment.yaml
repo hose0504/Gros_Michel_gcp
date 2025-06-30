@@ -2,6 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: web-deployment
+  labels:
+    app: web
 spec:
   replicas: 1
   selector:
@@ -11,16 +13,9 @@ spec:
     metadata:
       labels:
         app: web
-        develop: spring-boot
     spec:
       containers:
-      - name: web-container
-        image: jwh0722/web_v1:latest
+      - name: web
+        image: jwh0722/web_v1en:latest
         ports:
         - containerPort: 80
-        readinessProbe:
-          httpGet:
-            path: /template
-            port: 80
-          initialDelaySeconds: 5
-          periodSeconds: 10
