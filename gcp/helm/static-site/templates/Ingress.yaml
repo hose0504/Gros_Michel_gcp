@@ -9,6 +9,7 @@ metadata:
     networking.gke.io/managed-certificates: grosmichel-cert # 🔐 인증서 연결
     networking.gke.io/frontend-config: web-frontend-config # 🔁 HTTP → HTTPS 리다이렉트 설정 추가
 spec:
+  ingressClassName: gce
   rules:
   - host: grosmichelus.com
     http:
