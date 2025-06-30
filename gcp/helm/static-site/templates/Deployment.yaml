@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: web-container
-        image: jwh0722/web_v1en:latest
+        image: jwh0722/web_v1:latest
         ports:
         - containerPort: 80
         readinessProbe:
