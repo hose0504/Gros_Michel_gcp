@@ -12,11 +12,12 @@ jobs:
     timeout-minutes: 50
 
     env:
-      TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
-      TF_VAR_region:     ${{ secrets.GCP_REGION }}
-      TF_VAR_zone:       ${{ secrets.GCP_ZONE }}
+      TF_VAR_project_id:      ${{ secrets.GCP_PROJECT_ID }}
+      TF_VAR_region:          ${{ secrets.GCP_REGION }}
+      TF_VAR_zone:            ${{ secrets.GCP_ZONE }}
       TF_VAR_gcp_credentials: ${{ secrets.GOOGLE_CREDENTIALS }}
       TF_VAR_ssh_pub_key:     ${{ secrets.SSH_PUB_KEY_PATH }}
+      gke_cluster_name:       gros-michel-gke-cluster
 
     defaults:
       run:
@@ -36,7 +37,6 @@ jobs:
         with:
           credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
 
-      # ▶️  startup.sh 그대로 user-data.template 로 복사
       - name: Copy startup.sh → user-data.template
         run: |
           cp modules/instance/startup.sh modules/instance/user-data.template
@@ -55,6 +55,12 @@ jobs:
 
       - name: Terraform Apply
         run: terraform apply -auto-approve -input=false -var-file="terraform.tfvars"
+
+      - name: Get GKE Credentials
+        run: |
+          gcloud container clusters get-credentials ${{ env.gke_cluster_name }} \
+            --zone ${{ env.TF_VAR_zone }} \
+            --project ${{ env.TF_VAR_project_id }}
 
       - name: Install Ingress NGINX with Static IP
         run: |
