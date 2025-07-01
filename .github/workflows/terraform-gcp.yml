@@ -59,7 +59,7 @@ jobs:
       - name: Get GKE Credentials
         run: |
           gcloud container clusters get-credentials ${{ env.gke_cluster_name }} \
-            --zone ${{ env.TF_VAR_zone }} \
+            --region ${{ env.TF_VAR_zone }} \
             --project ${{ env.TF_VAR_project_id }}
 
       - name: Install Ingress NGINX with Static IP
