@@ -56,6 +56,15 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve -input=false -var-file="terraform.tfvars"
 
+      - name: Install Ingress NGINX with Static IP
+        run: |
+          helm upgrade --install ingress-nginx ingress-nginx \
+            --repo https://kubernetes.github.io/ingress-nginx \
+            --namespace ingress-nginx --create-namespace \
+            --set controller.service.loadBalancerIP="34.149.118.225" \
+            --set controller.service.annotations."cloud\.google\.com/load-balancer-type"="External" \
+            --set controller.service.annotations."cloud\.google\.com/load-balancer-ipv4-address"="grosmichel-ip"
+
   terraform-destroy:
     if: contains(github.event.head_commit.message, 'destroy')
     runs-on: ubuntu-latest
