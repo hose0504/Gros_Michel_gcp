@@ -11,15 +11,15 @@ spec:
     - host: grosmichelus.com
       http:
         paths:
-          - path: /template/?(.*)
-            pathType: Prefix
+          - path: /template/(.*)
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: web-service
                 port:
                   number: 80
-          - path: /(.*)
-            pathType: Prefix
+          - path: /?(.*)
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: web-service
