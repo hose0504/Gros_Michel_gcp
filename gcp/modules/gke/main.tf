@@ -41,8 +41,7 @@ resource "google_container_node_pool" "node_pools" {
   location = var.region
   cluster  = google_container_cluster.primary.name
 
-  # ✅ 에러 해결용 핵심 추가
-  node_version = "latest"
+ 
 
   node_config {
     machine_type = each.value.machine_type
