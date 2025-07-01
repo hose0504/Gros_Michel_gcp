@@ -4,18 +4,26 @@ metadata:
   name: web-ingress
   annotations:
     kubernetes.io/ingress.class: "gce"
-    networking.gke.io/managed-certificates: "managed-cert"
+    #networking.gke.io/managed-certificates: "managed-cert"
     kubernetes.io/ingress.allow-http: "true"
     kubernetes.io/ingress.global-static-ip-name: grosmichel-ip
 spec:
-  rules:
+ rules:
   - host: grosmichelus.com
     http:
       paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: web-service
-            port:
-              number: 80
+        - path: /template
+          pathType: Prefix
+          backend:
+            service:
+              name: web-service
+              port:
+                number: 80
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: web-service
+              port:
+                number: 80
+
