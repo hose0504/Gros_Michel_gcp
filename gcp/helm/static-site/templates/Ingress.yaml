@@ -6,6 +6,8 @@ metadata:
     kubernetes.io/ingress.class: "gce"
     kubernetes.io/ingress.allow-http: "true"
     kubernetes.io/ingress.global-static-ip-name: grosmichel-ip
+    kubernetes.io/ingress.class: "nginx"
+
 spec:
   rules:
     - host: grosmichelus.com
