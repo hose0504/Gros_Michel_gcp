@@ -41,17 +41,19 @@ resource "google_container_node_pool" "node_pools" {
   location = var.region
   cluster  = google_container_cluster.primary.name
 
-node_config {
-  machine_type = each.value.machine_type
-  oauth_scopes = [
-    "https://www.googleapis.com/auth/cloud-platform"
-  ]
-  metadata = {
-    disable-legacy-endpoints = "true"
-  }
-  image_type = "COS_CONTAINERD"
-}
+  # ✅ 에러 해결용 핵심 추가
+  node_version = "latest"
 
+  node_config {
+    machine_type = each.value.machine_type
+    oauth_scopes = [
+      "https://www.googleapis.com/auth/cloud-platform"
+    ]
+    metadata = {
+      disable-legacy-endpoints = "true"
+    }
+    image_type = "COS_CONTAINERD"
+  }
 
   initial_node_count = each.value.node_count
 
@@ -76,7 +78,7 @@ data "google_client_config" "current" {}
 # kubeconfig 생성
 #-------------------------------
 resource "local_file" "kubeconfig" {
-  count = var.credentials_file_path != "" ? 1 : 0 # 로컬에서만 실행
+  count = var.credentials_file_path != "" ? 1 : 0
 
   content = templatefile("${path.module}/kubeconfig.tpl", {
     cluster_name     = data.google_container_cluster.cluster_info.name
@@ -93,4 +95,3 @@ resource "local_file" "kubeconfig" {
 
   filename = "${path.module}/generated_kubeconfig"
 }
-
