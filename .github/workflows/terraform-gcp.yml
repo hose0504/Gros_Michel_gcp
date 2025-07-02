@@ -5,19 +5,19 @@ on:
     branches: ["main"]
     paths: ["**"]
 
+env:
+  TF_VAR_project_id:      ${{ secrets.GCP_PROJECT_ID }}
+  TF_VAR_region:          ${{ secrets.GCP_REGION }}
+  TF_VAR_zone:            ${{ secrets.GCP_ZONE }}
+  TF_VAR_gcp_credentials: ${{ secrets.GOOGLE_CREDENTIALS }}
+  TF_VAR_ssh_pub_key:     ${{ secrets.SSH_PUB_KEY_PATH }}
+  gke_cluster_name:       gros-michel-gke-cluster
+
 jobs:
   terraform-apply:
     if: contains(github.event.head_commit.message, 'apply')
     runs-on: ubuntu-latest
     timeout-minutes: 50
-
-    env:
-      TF_VAR_project_id:      ${{ secrets.GCP_PROJECT_ID }}
-      TF_VAR_region:          ${{ secrets.GCP_REGION }}
-      TF_VAR_zone:            ${{ secrets.GCP_ZONE }}
-      TF_VAR_gcp_credentials: ${{ secrets.GOOGLE_CREDENTIALS }}
-      TF_VAR_ssh_pub_key:     ${{ secrets.SSH_PUB_KEY_PATH }}
-      gke_cluster_name:       gros-michel-gke-cluster
 
     defaults:
       run:
@@ -38,8 +38,7 @@ jobs:
           credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
 
       - name: Copy startup.sh → user-data.template
-        run: |
-          cp modules/instance/startup.sh modules/instance/user-data.template
+        run: cp modules/instance/startup.sh modules/instance/user-data.template
 
       - name: Terraform Init
         run: terraform init
@@ -55,6 +54,11 @@ jobs:
 
       - name: Terraform Apply
         run: terraform apply -auto-approve -input=false -var-file="terraform.tfvars"
+
+      - name: Install GKE Auth Plugin
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-cloud-sdk-gke-gcloud-auth-plugin
 
       - name: Get GKE Credentials
         run: |
@@ -75,13 +79,6 @@ jobs:
     if: contains(github.event.head_commit.message, 'destroy')
     runs-on: ubuntu-latest
     timeout-minutes: 50
-
-    env:
-      TF_VAR_project_id:      ${{ secrets.GCP_PROJECT_ID }}
-      TF_VAR_region:          ${{ secrets.GCP_REGION }}
-      TF_VAR_zone:            ${{ secrets.GCP_ZONE }}
-      TF_VAR_gcp_credentials: ${{ secrets.GOOGLE_CREDENTIALS }}
-      TF_VAR_ssh_pub_key:     ${{ secrets.SSH_PUB_KEY_PATH }}
 
     defaults:
       run:
