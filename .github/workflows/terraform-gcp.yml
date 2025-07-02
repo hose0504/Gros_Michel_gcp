@@ -6,13 +6,13 @@ on:
     paths: ["**"]
 
 env:
-  TF_VAR_project_id:      ${{ secrets.GCP_PROJECT_ID }}
-  TF_VAR_region:          ${{ secrets.GCP_REGION }}
-  TF_VAR_zone:            ${{ secrets.GCP_ZONE }}
+  TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
+  TF_VAR_region: ${{ secrets.GCP_REGION }}
+  TF_VAR_zone: ${{ secrets.GCP_ZONE }}
   TF_VAR_gcp_credentials: ${{ secrets.GOOGLE_CREDENTIALS }}
-  TF_VAR_ssh_pub_key:     ${{ secrets.SSH_PUB_KEY_PATH }}
-  gke_cluster_name:       gros-michel-gke-cluster
-  USE_GKE_GCLOUD_AUTH_PLUGIN: "True"
+  TF_VAR_ssh_pub_key: ${{ secrets.SSH_PUB_KEY_PATH }}
+  gke_cluster_name: gros-michel-gke-cluster
+  # USE_GKE_GCLOUD_AUTH_PLUGIN: "True" # This environment variable is handled by the setup-gcloud action.
 
 jobs:
   terraform-apply:
@@ -22,7 +22,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: gcp
+        working-directory: gcp # Root directory of the Terraform project
 
     steps:
       - name: Checkout code
@@ -33,12 +33,21 @@ jobs:
         with:
           terraform_version: 1.6.6
 
-      - name: Authenticate to Google Cloud
+      - name: Authenticate to Google Cloud and Install gcloud CLI
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
 
+      - name: Set up gcloud CLI and gke-gcloud-auth-plugin
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          # gke-gcloud-auth-plugin is automatically included when gcloud CLI is installed.
+          # components: ['gke-gcloud-auth-plugin'] # Add explicitly if necessary
+
       - name: Copy startup.sh → user-data.template
+        # Please reconfirm if this step is necessary with your Terraform code.
+        # Generally, user-data is directly referenced in Terraform using functions like file().
         run: cp modules/instance/startup.sh modules/instance/user-data.template
 
       - name: Terraform Init
@@ -56,20 +65,35 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve -input=false -var-file="terraform.tfvars"
 
+      - name: Get Terraform Output - Ingress IP Name
+        id: get_ip_name
+        run: |
+          # Get the static IP resource name from Terraform output.
+          # Example: output "ingress_ip_name" { value = google_compute_address.ingress_static_ip.name }
+          INGRESS_IP_NAME=$(terraform output -raw ingress_ip_name)
+          echo "INGRESS_IP_NAME=$INGRESS_IP_NAME" >> $GITHUB_OUTPUT
+
       - name: Get GKE Credentials
         run: |
           gcloud container clusters get-credentials ${{ env.gke_cluster_name }} \
             --region ${{ env.TF_VAR_region }} \
             --project ${{ env.TF_VAR_project_id }}
 
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.8.1 # Specify the Helm version you want to use.
+
       - name: Install Ingress NGINX with Static IP
         run: |
           helm upgrade --install ingress-nginx ingress-nginx \
             --repo https://kubernetes.github.io/ingress-nginx \
             --namespace ingress-nginx --create-namespace \
-            --set controller.service.loadBalancerIP="34.149.118.225" \
             --set controller.service.annotations."cloud\.google\.com/load-balancer-type"="External" \
-            --set controller.service.annotations."cloud\.google\.com/load-balancer-ipv4-address"="grosmichel-ip"
+            --set controller.service.annotations."cloud\.google\.com/load-balancer-ipv4-address"="${{ steps.get_ip_name.outputs.INGRESS_IP_NAME }}"
+          # Use annotations."cloud.google.com/load-balancer-ipv4-address" instead of controller.service.loadBalancerIP
+          # to reference the static IP resource name created by Terraform.
+          # For this annotation to work, the static IP must be created in Terraform beforehand and its name known.
 
   terraform-destroy:
     if: contains(github.event.head_commit.message, 'destroy')
@@ -89,10 +113,15 @@ jobs:
         with:
           terraform_version: 1.6.6
 
-      - name: Authenticate to Google Cloud
+      - name: Authenticate to Google Cloud and Install gcloud CLI
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
+
+      - name: Set up gcloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
 
       - name: Terraform Init
         run: terraform init
