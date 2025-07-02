@@ -77,3 +77,6 @@ module "hlb" {
   name_prefix = "gros-cdn"
 }
 
+output "ingress_ip_name" {
+  value = module.gke.ingress_ip_name
+}
