@@ -78,19 +78,16 @@ jobs:
         with:
           version: v3.8.1
 
-      - name: Install Ingress NGINX with Static IP # 수정된 부분: 디버깅 출력 및 변수 사용 시 따옴표 추가
+      - name: Install Ingress NGINX with Static IP
         run: |
-          set -x # 쉘 디버깅 모드 활성화 (실행되는 명령어들을 로그에 출력)
+          set -x
+          echo "Debug: INGRESS_IP_NAME = '${{ steps.get_ip_name.outputs.INGRESS_IP_NAME }}'"
 
-          # 디버깅: INGRESS_IP_NAME 변수의 정확한 값 출력
-          echo "Debug: INGRESS_IP_NAME 변수 값: '${{ steps.get_ip_name.outputs.INGRESS_IP_NAME }}'"
-
-          # Helm 명령어에서 변수 사용 시 따옴표로 감싸서 안전하게 전달
           helm upgrade --install ingress-nginx ingress-nginx \
             --repo https://kubernetes.github.io/ingress-nginx \
             --namespace ingress-nginx --create-namespace \
             --set controller.service.annotations."cloud\.google\.com/load-balancer-type"="External" \
-            --set controller.service.annotations."cloud\.google\.com/load-balancer-ipv4-address"="'${{ steps.get_ip_name.outputs.INGRESS_IP_NAME }}'" # 여기에 작은따옴표 추가
+            --set controller.service.annotations."cloud\.google\.com/load-balancer-ipv4-address"=${{ steps.get_ip_name.outputs.INGRESS_IP_NAME }}
 
   terraform-destroy:
     if: contains(github.event.head_commit.message, 'destroy')
