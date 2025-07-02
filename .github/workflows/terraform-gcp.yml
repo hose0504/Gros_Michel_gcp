@@ -12,6 +12,7 @@ env:
   TF_VAR_gcp_credentials: ${{ secrets.GOOGLE_CREDENTIALS }}
   TF_VAR_ssh_pub_key:     ${{ secrets.SSH_PUB_KEY_PATH }}
   gke_cluster_name:       gros-michel-gke-cluster
+  USE_GKE_GCLOUD_AUTH_PLUGIN: "True"
 
 jobs:
   terraform-apply:
@@ -54,11 +55,6 @@ jobs:
 
       - name: Terraform Apply
         run: terraform apply -auto-approve -input=false -var-file="terraform.tfvars"
-
-      - name: Install GKE Auth Plugin
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y google-cloud-sdk-gke-gcloud-auth-plugin
 
       - name: Get GKE Credentials
         run: |
