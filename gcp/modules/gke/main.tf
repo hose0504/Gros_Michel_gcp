@@ -111,5 +111,3 @@ output "ingress_ip_name" {
   description = "The name of the existing static IP for Ingress."
   value       = data.google_compute_address.ingress_static_ip_data.name
 }
-
-# ...
