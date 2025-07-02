@@ -32,3 +32,9 @@ output "cluster_location" {
   description = "GKE 클러스터가 생성된 리전/존 정보"
   value       = google_container_cluster.primary.location
 }
+
+# 고정 IP 이름 출력
+output "ingress_ip_name" {
+  description = "The name of the existing static IP"
+  value       = data.google_compute_address.existing_ingress_ip.name
+}

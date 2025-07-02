@@ -94,3 +94,17 @@ resource "local_file" "kubeconfig" {
   filename = "${path.module}/generated_kubeconfig"
 }
 
+#-------------------------------
+# 고정 IP 주소 참조 (이미 존재하는 IP)
+#-------------------------------
+data "google_compute_address" "existing_ingress_ip" {
+  name    = "grosmichel-ip"        # GCP 콘솔에 있는 고정 IP 이름
+  region  = var.region
+  project = var.project_id
+}
+
+output "ingress_ip_name" {
+  description = "The name of the existing static IP"
+  value       = data.google_compute_address.existing_ingress_ip.name
+}
+
