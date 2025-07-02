@@ -103,8 +103,3 @@ data "google_compute_address" "existing_ingress_ip" {
   project = var.project_id
 }
 
-output "ingress_ip_name" {
-  description = "The name of the existing static IP"
-  value       = data.google_compute_address.existing_ingress_ip.name
-}
-
