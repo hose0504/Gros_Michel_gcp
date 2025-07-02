@@ -32,12 +32,12 @@ jobs:
         with:
           terraform_version: 1.6.6
 
-      - name: Authenticate to Google Cloud and Install gcloud CLI
+      - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
 
-      - name: Set up gcloud CLI and gke-gcloud-auth-plugin
+      - name: Set up gcloud CLI
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
@@ -60,19 +60,18 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve -input=false -var-file="terraform.tfvars"
 
-      - name: Get Terraform Output - Ingress IP Name # 수정된 부분: tr -d '\n' 추가
+      - name: Get Terraform Output - Ingress IP Name
         id: get_ip_name
         run: |
-          # Terraform output에서 고정 IP 리소스 이름을 가져와 변수에 저장하고 줄바꿈 문자 제거
           INGRESS_IP_NAME=$(terraform output -raw ingress_ip_name | tr -d '\n')
-          # GITHUB_OUTPUT 파일에 변수 값을 올바른 형식으로 작성
           echo "INGRESS_IP_NAME=$INGRESS_IP_NAME" >> "$GITHUB_OUTPUT"
 
       - name: Get GKE Credentials
-        run: |
-          gcloud container clusters get-credentials ${{ env.gke_cluster_name }} \
-            --region ${{ env.TF_VAR_region }} \
-            --project ${{ env.TF_VAR_project_id }}
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ env.gke_cluster_name }}
+          location: ${{ env.TF_VAR_region }}
+          project_id: ${{ env.TF_VAR_project_id }}
 
       - name: Install Helm
         uses: azure/setup-helm@v3
@@ -81,6 +80,8 @@ jobs:
 
       - name: Install Ingress NGINX with Static IP
         run: |
+          # 이 아래 Helm 명령어 라인들을 다시 한번 꼼꼼히 확인해줘.
+          # 'output:' 같은 이상한 문장이 들어가 있지 않은지 말이야.
           helm upgrade --install ingress-nginx ingress-nginx \
             --repo https://kubernetes.github.io/ingress-nginx \
             --namespace ingress-nginx --create-namespace \
