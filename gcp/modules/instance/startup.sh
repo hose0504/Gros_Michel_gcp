@@ -122,6 +122,22 @@ sudo -u wish bash -c "
   kubectl wait --for=condition=Established crd/applications.argoproj.io --timeout=60s || true
 "
 
+# 13.5) ExternalDNS 설치 (wish 계정에서 실행)
+sudo -u wish bash -c "
+  export USE_GKE_GCLOUD_AUTH_PLUGIN=True
+  cd /home/wish
+
+  echo '📦 Downloading external-dns.tar.gz...'
+  wget -q https://storage.googleapis.com/grosmichel-tfstate-202506180252/terraform/state/external-dns.tar.gz
+
+  echo '📂 Extracting external-dns...'
+  tar -xzf external-dns.tar.gz
+
+  echo '📡 Deploying external-dns manifests...'
+  kubectl create namespace external-dns --dry-run=client -o yaml | kubectl apply -f -
+  kubectl apply -f external-dns/templates/
+"
+
 # 14) Helm 차트 적용
 sudo -u wish bash -c "
   export USE_GKE_GCLOUD_AUTH_PLUGIN=True
