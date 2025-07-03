@@ -70,13 +70,14 @@ jobs:
         run: |
           echo "🛰️  Waiting for Ingress to get an external IP or hostname..."
           INGRESS_IP=""
-          for i in $(seq 1 60); do
+          for i in $(seq 1 90); do
             INGRESS_IP=$(kubectl get ingress -A -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}' 2>/dev/null)
             if [ -z "$INGRESS_IP" ]; then
               INGRESS_IP=$(kubectl get ingress -A -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}' 2>/dev/null)
             fi
             if [ -n "$INGRESS_IP" ]; then
               echo "✅ External address found: $INGRESS_IP"
+              echo "INGRESS_IP=$INGRESS_IP" >> "$GITHUB_OUTPUT"
               break
             fi
             echo "Attempt $i: External IP/hostname not assigned yet. Waiting 10 seconds..."
@@ -88,8 +89,6 @@ jobs:
             kubectl get ingress -A -o yaml || true
             exit 1
           fi
-
-          echo "INGRESS_IP=$INGRESS_IP" >> "$GITHUB_OUTPUT"
 
       - name: Update DNS A Record
         run: |
