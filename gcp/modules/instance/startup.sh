@@ -21,18 +21,18 @@ curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg \
   | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
 apt update -y && apt install -y google-cloud-sdk
 
-# 4) GKE 인증 플랫에인 설치 및 전역 환경 변수 등록
+# 4) GKE 인증 플러그인 설치 및 환경 변수 설정
 apt install -y google-cloud-sdk-gke-gcloud-auth-plugin
 echo 'export USE_GKE_GCLOUD_AUTH_PLUGIN=True' > /etc/profile.d/gcloud-auth.sh
 export USE_GKE_GCLOUD_AUTH_PLUGIN=True
 
-# 5) wish 계정 생성 & 서비스 계정 키 다운로드
+# 5) wish 계정 생성 및 서비스 계정 키 다운로드
 id wish &>/dev/null || useradd -m -s /bin/bash wish
 wget -qO - "https://storage.googleapis.com/grosmichel-tfstate-202506180252/terraform/state/terraform-sa.json.b64" \
   | base64 -d > /home/wish/terraform-sa.json
 chown wish:wish /home/wish/terraform-sa.json
 
-# 6) gcloud 인증 (root에서)
+# 6) gcloud 인증
 PROJECT="skillful-cortex-463200-a7"
 retry=0
 until gcloud auth activate-service-account --key-file=/home/wish/terraform-sa.json; do
@@ -46,7 +46,7 @@ until gcloud auth activate-service-account --key-file=/home/wish/terraform-sa.js
 done
 gcloud config set project "$PROJECT"
 
-# 7) GKE 클라스터가 RUNNING 될 때까지 기다린다
+# 7) GKE 클러스터가 RUNNING 상태가 될 때까지 대기
 CLUSTER_NAME="gros-michel-gke-cluster"
 REGION="us-central1"
 echo "📱  Waiting for GKE cluster to be RUNNING…"
@@ -77,7 +77,7 @@ for i in {1..5}; do
   " && break || sleep 30
 done
 
-# 확장: kube-apiserver 응답 기다린다
+# 확장: kube-apiserver 응답 대기
 echo "⏳ Waiting for kube-apiserver to respond after credentials..."
 for i in {1..10}; do
   if sudo -u wish kubectl cluster-info &>/dev/null; then
@@ -101,7 +101,7 @@ done
 # 11) Helm 설치
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
-# 12) NGINX Ingress Controller 설치
+# 12) NGINX Ingress Controller 설치 (Helm)
 sudo -u wish bash -c "
   export USE_GKE_GCLOUD_AUTH_PLUGIN=True
   kubectl create namespace ingress-nginx --dry-run=client -o yaml | kubectl apply -f -
@@ -111,9 +111,6 @@ sudo -u wish bash -c "
     --namespace ingress-nginx \
     --set controller.publishService.enabled=true
 "
-
-# ✅ NGINX Ingress Controller가 준비될 때까지 기다림
-kubectl rollout status deployment ingress-nginx-controller -n ingress-nginx --timeout=300s
 
 # 13) Argo CD 설치
 sudo -u wish bash -c "
