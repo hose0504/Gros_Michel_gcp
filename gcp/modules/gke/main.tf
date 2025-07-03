@@ -94,20 +94,3 @@ resource "local_file" "kubeconfig" {
   filename = "${path.module}/generated_kubeconfig"
 }
 
-# gcp/main.tf (루트 디렉토리)
-
-# ... 다른 리소스 및 모듈 정의 ...
-
-# 고정 IP 주소 참조 (이미 존재하는 IP)
-# GKE 모듈 밖, 루트 레벨에서 직접 참조
-data "google_compute_address" "ingress_static_ip_data" { # 이름 변경 (기존 모듈 이름과 충돌 방지)
-  name    = "grosmichel-ip"  # GCP 콘솔에 있는 고정 IP 이름
-  region  = var.region
-  project = var.project_id
-}
-
-# 고정 IP 이름 출력 (루트 레벨에서 직접 출력)
-output "ingress_ip_name" {
-  description = "The name of the existing static IP for Ingress."
-  value       = data.google_compute_address.ingress_static_ip_data.name
-}

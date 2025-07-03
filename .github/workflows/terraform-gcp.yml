@@ -12,6 +12,8 @@ env:
   TF_VAR_gcp_credentials: ${{ secrets.GOOGLE_CREDENTIALS }}
   TF_VAR_ssh_pub_key: ${{ secrets.SSH_PUB_KEY_PATH }}
   gke_cluster_name: gros-michel-gke-cluster
+  # 중요: 여기에 실제 Google Cloud DNS 존 이름을 입력해주세요.
+  DNS_ZONE_NAME: grosmichelus-zone # 예시: 'my-domain-com-zone'
 
 jobs:
   terraform-apply:
@@ -42,8 +44,8 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-      - name: Copy startup.sh → user-data.template
-        run: cp modules/instance/startup.sh modules/instance/user-data.template
+      # 기존 'Copy startup.sh' 스텝은 이 흐름과 직접 관련이 없어 제거했습니다.
+      # 만약 필요하다면 다시 추가해주세요.
 
       - name: Terraform Init
         run: terraform init
@@ -60,11 +62,7 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve -input=false -var-file="terraform.tfvars"
 
-      - name: Get Terraform Output - Ingress IP Name
-        id: get_ip_name
-        run: |
-          INGRESS_IP_NAME=$(terraform output -raw ingress_ip_name | tr -d '\n')
-          echo "INGRESS_IP_NAME=$INGRESS_IP_NAME" >> "$GITHUB_OUTPUT"
+      # 'Get Terraform Output - Ingress IP Name' 스텝은 고정 IP를 사용하지 않으므로 제거했습니다.
 
       - name: Get GKE Credentials
         uses: google-github-actions/get-gke-credentials@v2
@@ -78,16 +76,66 @@ jobs:
         with:
           version: v3.8.1
 
-      - name: Install Ingress NGINX with Static IP
+      - name: Install Ingress NGINX # 고정 IP 할당 부분을 제거했습니다.
         run: |
           set -x
-          echo "Debug: INGRESS_IP_NAME = '${{ steps.get_ip_name.outputs.INGRESS_IP_NAME }}'"
-
           helm upgrade --install ingress-nginx ingress-nginx \
             --repo https://kubernetes.github.io/ingress-nginx \
             --namespace ingress-nginx --create-namespace \
-            --set controller.service.annotations."cloud\.google\.com/load-balancer-type"="External" \
-            --set controller.service.annotations."cloud\.google\.com/load-balancer-ipv4-address"='${{ steps.get_ip_name.outputs.INGRESS_IP_NAME }}' # 여기에 작은따옴표 추가
+            --set controller.service.annotations."cloud\.google\.com/load-balancer-type"="External"
+
+      - name: Get Ingress NGINX External IP # 새로 추가된 스텝: Ingress Controller의 외부 IP를 가져옵니다.
+        id: get_ingress_ip
+        run: |
+          echo "Waiting for Ingress NGINX service to get an external IP..."
+          INGRESS_IP=""
+          for i in $(seq 1 30); do # 최대 5분 (10초 * 30회) 대기
+            INGRESS_IP=$(kubectl get service -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)
+            if [ -n "$INGRESS_IP" ]; then
+              echo "Ingress NGINX External IP found: $INGRESS_IP"
+              break
+            fi
+            echo "시도 $i: IP가 아직 할당되지 않았습니다. 10초 대기 중..."
+            sleep 10
+          done
+
+          if [ -z "$INGRESS_IP" ]; then
+            echo "에러: Ingress NGINX 외부 IP를 기다리는 중 시간 초과되었습니다."
+            exit 1
+          fi
+          echo "INGRESS_IP=$INGRESS_IP" >> "$GITHUB_OUTPUT"
+
+      - name: Update DNS A Record # 새로 추가된 스텝: DNS A 레코드를 업데이트합니다.
+        run: |
+          DOMAIN="grosmichelus.com"
+          NEW_IP="${{ steps.get_ingress_ip.outputs.INGRESS_IP }}"
+          DNS_ZONE="${{ env.DNS_ZONE_NAME }}"
+
+          echo "${DOMAIN}에 대한 A 레코드를 ${NEW_IP}로 DNS 존 ${DNS_ZONE}에 업데이트를 시도합니다..."
+
+          # 현재 A 레코드 값 가져오기
+          CURRENT_RECORD_JSON=$(gcloud dns record-sets list --zone="$DNS_ZONE" --name="$DOMAIN." --type="A" --format="json" 2>/dev/null)
+          CURRENT_IP=$(echo "$CURRENT_RECORD_JSON" | jq -r '.[0].rrdatas[0]' 2>/dev/null)
+
+          if [ -z "$CURRENT_IP" ] || [ "$CURRENT_IP" = "null" ]; then
+            echo "${DOMAIN}에 대한 기존 A 레코드를 찾을 수 없습니다. 새로운 레코드를 생성합니다."
+            gcloud dns record-sets create "$DOMAIN" \
+              --rrdatas="$NEW_IP" \
+              --type="A" \
+              --ttl="300" \
+              --zone="$DNS_ZONE" \
+              --project="${{ env.TF_VAR_project_id }}"
+          else
+            echo "${DOMAIN}에 대한 기존 A 레코드는 ${CURRENT_IP}입니다. ${NEW_IP}로 업데이트합니다."
+            gcloud dns record-sets update "$DOMAIN" \
+              --rrdatas="$NEW_IP" \
+              --type="A" \
+              --ttl="300" \
+              --zone="$DNS_ZONE" \
+              --project="${{ env.TF_VAR_project_id }}" \
+              --old-rrdatas="$CURRENT_IP"
+          fi
+          echo "DNS A 레코드 업데이트 프로세스가 시작되었습니다. 전파에는 시간이 걸릴 수 있습니다."
 
   terraform-destroy:
     if: contains(github.event.head_commit.message, 'destroy')
