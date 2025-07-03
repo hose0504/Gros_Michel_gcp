@@ -112,6 +112,9 @@ sudo -u wish bash -c "
     --set controller.publishService.enabled=true
 "
 
+# ✅ NGINX Ingress Controller가 준비될 때까지 기다림
+kubectl rollout status deployment ingress-nginx-controller -n ingress-nginx --timeout=300s
+
 # 13) Argo CD 설치
 sudo -u wish bash -c "
   export USE_GKE_GCLOUD_AUTH_PLUGIN=True
