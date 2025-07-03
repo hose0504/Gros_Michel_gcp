@@ -87,7 +87,7 @@ jobs:
             --repo https://kubernetes.github.io/ingress-nginx \
             --namespace ingress-nginx --create-namespace \
             --set controller.service.annotations."cloud\.google\.com/load-balancer-type"="External" \
-            --set controller.service.annotations."cloud\.google\.com/load-balancer-ipv4-address"=${{ steps.get_ip_name.outputs.INGRESS_IP_NAME }}
+            --set controller.service.annotations."cloud\.google\.com/load-balancer-ipv4-address"='${{ steps.get_ip_name.outputs.INGRESS_IP_NAME }}' # 여기에 작은따옴표 추가
 
   terraform-destroy:
     if: contains(github.event.head_commit.message, 'destroy')
