@@ -65,29 +65,30 @@ jobs:
           location: ${{ env.TF_VAR_region }}
           project_id: ${{ env.TF_VAR_project_id }}
 
-      - name: Get Ingress External IP (via ingress-nginx-controller Service)
+      - name: Get Ingress External IP (via ArgoCD-created Ingress)
         id: get_ingress_ip
         run: |
-          echo "Waiting for ingress-nginx-controller service to get an external IP..."
+          echo "🛰️  Waiting for Ingress to get an external IP or hostname..."
           INGRESS_IP=""
           for i in $(seq 1 60); do
-            INGRESS_IP=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)
+            INGRESS_IP=$(kubectl get ingress -A -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}' 2>/dev/null)
             if [ -z "$INGRESS_IP" ]; then
-              INGRESS_IP=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null)
+              INGRESS_IP=$(kubectl get ingress -A -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}' 2>/dev/null)
             fi
             if [ -n "$INGRESS_IP" ]; then
-              echo "✅ External IP found: $INGRESS_IP"
+              echo "✅ External address found: $INGRESS_IP"
               break
             fi
-            echo "Attempt $i: IP not assigned yet. Waiting 10 seconds..."
+            echo "Attempt $i: External IP/hostname not assigned yet. Waiting 10 seconds..."
             sleep 10
           done
 
           if [ -z "$INGRESS_IP" ]; then
-            echo "❌ Failed to retrieve external IP. Timeout."
-            kubectl get svc ingress-nginx-controller -n ingress-nginx -o yaml || true
+            echo "❌ Timed out while waiting for Ingress IP/hostname."
+            kubectl get ingress -A -o yaml || true
             exit 1
           fi
+
           echo "INGRESS_IP=$INGRESS_IP" >> "$GITHUB_OUTPUT"
 
       - name: Update DNS A Record
@@ -96,13 +97,13 @@ jobs:
           NEW_IP="${{ steps.get_ingress_ip.outputs.INGRESS_IP }}"
           DNS_ZONE="${{ env.DNS_ZONE_NAME }}"
 
-          echo "🔄 Updating A record for $DOMAIN to $NEW_IP in zone $DNS_ZONE..."
+          echo "Updating A record for $DOMAIN to $NEW_IP in zone $DNS_ZONE..."
 
           CURRENT_RECORD_JSON=$(gcloud dns record-sets list --zone="$DNS_ZONE" --name="$DOMAIN." --type="A" --format="json" 2>/dev/null)
           CURRENT_IP=$(echo "$CURRENT_RECORD_JSON" | jq -r '.[0].rrdatas[0]' 2>/dev/null)
 
           if [ -z "$CURRENT_IP" ] || [ "$CURRENT_IP" = "null" ]; then
-            echo "🆕 No existing A record found. Creating a new one."
+            echo "No existing A record found. Creating a new one."
             gcloud dns record-sets create "$DOMAIN" \
               --rrdatas="$NEW_IP" \
               --type="A" \
@@ -110,7 +111,7 @@ jobs:
               --zone="$DNS_ZONE" \
               --project="${{ env.TF_VAR_project_id }}"
           else
-            echo "♻️ Existing A record is $CURRENT_IP. Updating to $NEW_IP."
+            echo "Existing A record is $CURRENT_IP. Updating to $NEW_IP."
             gcloud dns record-sets update "$DOMAIN" \
               --rrdatas="$NEW_IP" \
               --type="A" \
@@ -119,7 +120,7 @@ jobs:
               --project="${{ env.TF_VAR_project_id }}" \
               --old-rrdatas="$CURRENT_IP"
           fi
-          echo "✅ DNS A record update complete. It may take time to propagate."
+          echo "DNS A record update complete. It may take time to propagate."
 
   terraform-destroy:
     if: contains(github.event.head_commit.message, 'destroy')
