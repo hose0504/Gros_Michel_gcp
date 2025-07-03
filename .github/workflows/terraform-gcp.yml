@@ -5,27 +5,26 @@ on:
     branches: ["main"]
     paths: ["**"]
 
-env:
-  TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
-  TF_VAR_region: ${{ secrets.GCP_REGION }}
-  TF_VAR_zone: ${{ secrets.GCP_ZONE }}
-  TF_VAR_gcp_credentials: ${{ secrets.GOOGLE_CREDENTIALS }}
-  TF_VAR_ssh_pub_key: ${{ secrets.SSH_PUB_KEY_PATH }}
-  gke_cluster_name: gros-michel-gke-cluster
-  DNS_ZONE_NAME: grosmichelus-zone
-
 jobs:
   terraform-apply:
     if: contains(github.event.head_commit.message, 'apply')
     runs-on: ubuntu-latest
     timeout-minutes: 50
 
+    env:
+      TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
+      TF_VAR_region: ${{ secrets.GCP_REGION }}
+      TF_VAR_zone: ${{ secrets.GCP_ZONE }}
+      TF_VAR_gcp_credentials: ${{ secrets.GOOGLE_CREDENTIALS }}
+      TF_VAR_ssh_pub_key: ${{ secrets.SSH_PUB_KEY_PATH }}
+      SA_KEY_JSON: ${{ secrets.SA_KEY_JSON }}
+
     defaults:
       run:
         working-directory: gcp
 
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v3
 
       - name: Set up Terraform
@@ -38,10 +37,8 @@ jobs:
         with:
           credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
 
-      - name: Set up gcloud CLI
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
+      - name: Copy startup.sh to user-data.template
+        run: cp modules/instance/startup.sh user-data.template
 
       - name: Terraform Init
         run: terraform init
@@ -58,80 +55,34 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve -input=false -var-file="terraform.tfvars"
 
-      - name: Get GKE Credentials
-        uses: google-github-actions/get-gke-credentials@v2
-        with:
-          cluster_name: ${{ env.gke_cluster_name }}
-          location: ${{ env.TF_VAR_region }}
-          project_id: ${{ env.TF_VAR_project_id }}
-
-      - name: Get Ingress External IP (via ArgoCD-created Ingress)
-        id: get_ingress_ip
+      - name: Wait for Cluster & KUBECONFIG Ready
         run: |
-          echo "🛰️  Waiting for Ingress to get an external IP or hostname..."
-          INGRESS_IP=""
-          for i in $(seq 1 90); do
-            INGRESS_IP=$(kubectl get ingress -A -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}' 2>/dev/null)
-            if [ -z "$INGRESS_IP" ]; then
-              INGRESS_IP=$(kubectl get ingress -A -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}' 2>/dev/null)
-            fi
-            if [ -n "$INGRESS_IP" ]; then
-              echo "✅ External address found: $INGRESS_IP"
-              echo "INGRESS_IP=$INGRESS_IP" >> "$GITHUB_OUTPUT"
-              break
-            fi
-            echo "Attempt $i: External IP/hostname not assigned yet. Waiting 10 seconds..."
-            sleep 10
-          done
+          gcloud container clusters get-credentials gros-michel-gke-cluster --region $TF_VAR_region
+          echo "KUBECONFIG ready!"
 
-          if [ -z "$INGRESS_IP" ]; then
-            echo "❌ Timed out while waiting for Ingress IP/hostname."
-            kubectl get ingress -A -o yaml || true
-            exit 1
-          fi
-
-      - name: Update DNS A Record
+      - name: Deploy ExternalDNS
         run: |
-          DOMAIN="grosmichelus.com"
-          NEW_IP="${{ steps.get_ingress_ip.outputs.INGRESS_IP }}"
-          DNS_ZONE="${{ env.DNS_ZONE_NAME }}"
-
-          echo "Updating A record for $DOMAIN to $NEW_IP in zone $DNS_ZONE..."
-
-          CURRENT_RECORD_JSON=$(gcloud dns record-sets list --zone="$DNS_ZONE" --name="$DOMAIN." --type="A" --format="json" 2>/dev/null)
-          CURRENT_IP=$(echo "$CURRENT_RECORD_JSON" | jq -r '.[0].rrdatas[0]' 2>/dev/null)
-
-          if [ -z "$CURRENT_IP" ] || [ "$CURRENT_IP" = "null" ]; then
-            echo "No existing A record found. Creating a new one."
-            gcloud dns record-sets create "$DOMAIN" \
-              --rrdatas="$NEW_IP" \
-              --type="A" \
-              --ttl="300" \
-              --zone="$DNS_ZONE" \
-              --project="${{ env.TF_VAR_project_id }}"
-          else
-            echo "Existing A record is $CURRENT_IP. Updating to $NEW_IP."
-            gcloud dns record-sets update "$DOMAIN" \
-              --rrdatas="$NEW_IP" \
-              --type="A" \
-              --ttl="300" \
-              --zone="$DNS_ZONE" \
-              --project="${{ env.TF_VAR_project_id }}" \
-              --old-rrdatas="$CURRENT_IP"
-          fi
-          echo "DNS A record update complete. It may take time to propagate."
+          kubectl create namespace external-dns --dry-run=client -o yaml | kubectl apply -f -
+          kubectl apply -f helm/external-dns/templates/
 
   terraform-destroy:
     if: contains(github.event.head_commit.message, 'destroy')
     runs-on: ubuntu-latest
     timeout-minutes: 50
 
+    env:
+      TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
+      TF_VAR_region: ${{ secrets.GCP_REGION }}
+      TF_VAR_zone: ${{ secrets.GCP_ZONE }}
+      TF_VAR_gcp_credentials: ${{ secrets.GOOGLE_CREDENTIALS }}
+      TF_VAR_ssh_pub_key: ${{ secrets.SSH_PUB_KEY_PATH }}
+
     defaults:
       run:
         working-directory: gcp
 
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v3
 
       - name: Set up Terraform
@@ -139,15 +90,10 @@ jobs:
         with:
           terraform_version: 1.6.6
 
-      - name: Authenticate to Google Cloud and Install gcloud CLI
+      - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
-
-      - name: Set up gcloud CLI
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
 
       - name: Terraform Init
         run: terraform init

@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: external-dns
+  namespace: external-dns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: external-dns
+  template:
+    metadata:
+      labels:
+        app: external-dns
+    spec:
+      serviceAccountName: external-dns
+      containers:
+        - name: external-dns
+          image: k8s.gcr.io/external-dns/external-dns:v0.13.6
+          args:
+            - --source=ingress
+            - --domain-filter=grosmichelus.com
+            - --provider=google
+            - --google-project=skillful-cortex-463200-a7
+            - --registry=txt
+            - --txt-owner-id=grosmichelus-dns

@@ -1,0 +1,6 @@
+provider: google
+domainFilters:
+  - grosmichelus.com
+zoneIDFilters:
+  - grosmichelus-zone
+serviceAccountName: external-dns
