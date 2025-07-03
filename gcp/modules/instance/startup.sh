@@ -122,6 +122,18 @@ sudo -u wish bash -c "
   kubectl wait --for=condition=Established crd/applications.argoproj.io --timeout=60s || true
 "
 
+# 13.4) Ingress NGINX Controller 설치 (wish 계정에서 실행)
+sudo -u wish bash -c "
+  export USE_GKE_GCLOUD_AUTH_PLUGIN=True
+
+  echo '🌐 Installing Ingress NGINX Controller...'
+  helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+  helm repo update
+
+  helm upgrade --install ingress-nginx ingress-nginx \
+    --namespace ingress-nginx --create-namespace
+"
+
 # 13.5) ExternalDNS 설치 (wish 계정에서 실행)
 sudo -u wish bash -c "
   export USE_GKE_GCLOUD_AUTH_PLUGIN=True
