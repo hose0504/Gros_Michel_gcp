@@ -38,7 +38,10 @@ jobs:
           credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
 
       - name: Copy startup.sh to user-data.template
-        run: cp modules/instance/startup.sh user-data.template
+        run: |
+          # 현재 워크플로는 working-directory: gcp 기준으로 돌아가므로
+          # 상대 경로는 gcp/ 이하가 아니라 modules/instance 부터 시작
+          cp modules/instance/startup.sh user-data.template
 
       - name: Terraform Init
         run: terraform init
@@ -54,16 +57,6 @@ jobs:
 
       - name: Terraform Apply
         run: terraform apply -auto-approve -input=false -var-file="terraform.tfvars"
-
-      - name: Wait for Cluster & KUBECONFIG Ready
-        run: |
-          gcloud container clusters get-credentials gros-michel-gke-cluster --region $TF_VAR_region
-          echo "KUBECONFIG ready!"
-
-      - name: Deploy ExternalDNS
-        run: |
-          kubectl create namespace external-dns --dry-run=client -o yaml | kubectl apply -f -
-          kubectl apply -f helm/external-dns/templates/
 
   terraform-destroy:
     if: contains(github.event.head_commit.message, 'destroy')
