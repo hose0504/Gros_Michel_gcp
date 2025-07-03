@@ -65,18 +65,18 @@ jobs:
           location: ${{ env.TF_VAR_region }}
           project_id: ${{ env.TF_VAR_project_id }}
 
-      - name: Get Ingress External IP (existing web-ingress)
+      - name: Get Ingress External IP (via ingress-nginx-controller Service)
         id: get_ingress_ip
         run: |
-          echo "Waiting for Ingress 'web-ingress' to get an external IP..."
+          echo "Waiting for ingress-nginx-controller service to get an external IP..."
           INGRESS_IP=""
           for i in $(seq 1 60); do
-            INGRESS_IP=$(kubectl get ingress web-ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)
+            INGRESS_IP=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)
             if [ -z "$INGRESS_IP" ]; then
-              INGRESS_IP=$(kubectl get ingress web-ingress -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null)
+              INGRESS_IP=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null)
             fi
             if [ -n "$INGRESS_IP" ]; then
-              echo "Ingress 'web-ingress' External IP found: $INGRESS_IP"
+              echo "External IP found: $INGRESS_IP"
               break
             fi
             echo "Attempt $i: IP not assigned yet. Waiting 10 seconds..."
@@ -85,7 +85,7 @@ jobs:
 
           if [ -z "$INGRESS_IP" ]; then
             echo "❌ Failed to retrieve external IP. Timeout."
-            kubectl get ingress web-ingress -o yaml || true
+            kubectl get svc ingress-nginx-controller -n ingress-nginx -o yaml || true
             exit 1
           fi
           echo "INGRESS_IP=$INGRESS_IP" >> "$GITHUB_OUTPUT"
