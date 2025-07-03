@@ -12,7 +12,7 @@ env:
   TF_VAR_gcp_credentials: ${{ secrets.GOOGLE_CREDENTIALS }}
   TF_VAR_ssh_pub_key: ${{ secrets.SSH_PUB_KEY_PATH }}
   gke_cluster_name: gros-michel-gke-cluster
-  DNS_ZONE_NAME: grosmichelus-zone
+  DNS_ZONE_NAME: grosmichelus-zone # 중요: 여기에 실제 Google Cloud DNS 존 이름을 입력해주세요.
 
 jobs:
   terraform-apply:
@@ -65,23 +65,58 @@ jobs:
           location: ${{ env.TF_VAR_region }}
           project_id: ${{ env.TF_VAR_project_id }}
 
-      - name: Get Ingress NGINX External IP
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.8.1
+
+      - name: Install Ingress NGINX (Conditional)
+        run: |
+          set -x
+          NAMESPACE="ingress-nginx"
+          RELEASE_NAME="ingress-nginx"
+
+          # Helm 릴리스가 이미 배포되었는지 확인
+          RELEASE_STATUS=$(helm status "$RELEASE_NAME" -n "$NAMESPACE" 2>&1 || true)
+          echo "Helm Release Status for $RELEASE_NAME in $NAMESPACE: $RELEASE_STATUS"
+
+          if echo "$RELEASE_STATUS" | grep -q "STATUS: deployed"; then
+            echo "Ingress NGINX Helm release '$RELEASE_NAME' is already deployed. Skipping installation."
+          elif echo "$RELEASE_STATUS" | grep -q "Error: release: not found"; then
+            echo "Ingress NGINX Helm release '$RELEASE_NAME' not found. Proceeding with initial installation."
+            helm upgrade --install "$RELEASE_NAME" ingress-nginx \
+              --repo https://kubernetes.github.io/ingress-nginx \
+              --namespace "$NAMESPACE" --create-namespace \
+              --set controller.service.annotations."cloud\.google\.com/load-balancer-type"="External"
+          else
+            echo "Ingress NGINX Helm release '$RELEASE_NAME' is in an unexpected state or operation in progress."
+            echo "Attempting to upgrade/install, but be aware of potential conflicts."
+            helm upgrade --install "$RELEASE_NAME" ingress-nginx \
+              --repo https://kubernetes.github.io/ingress-nginx \
+              --namespace "$NAMESPACE" --create-namespace \
+              --set controller.service.annotations."cloud\.google\.com/load-balancer-type"="External"
+          fi
+
+      - name: Get Ingress External IP # 수정된 스텝: Ingress 리소스에서 IP를 가져옵니다.
         id: get_ingress_ip
         run: |
-          echo "Waiting for Ingress NGINX service to get an external IP..."
+          echo "Waiting for Ingress 'web-ingress' to get an external IP..."
           INGRESS_IP=""
-          for i in $(seq 1 30); do
-            INGRESS_IP=$(kubectl get service -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)
+          for i in $(seq 1 60); do # 최대 10분 (10초 * 60회) 대기
+            # 'web-ingress' 리소스의 IP를 가져옵니다.
+            INGRESS_IP=$(kubectl get ingress web-ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)
             if [ -n "$INGRESS_IP" ]; then
-              echo "Ingress NGINX External IP found: $INGRESS_IP"
+              echo "Ingress 'web-ingress' External IP found: $INGRESS_IP"
               break
             fi
-            echo "시도 $i: IP가 아직 할당되지 않았습니다. 10초 대기 중..."
+            echo "시도 $i: Ingress 'web-ingress' IP가 아직 할당되지 않았습니다. 10초 대기 중..."
             sleep 10
           done
 
           if [ -z "$INGRESS_IP" ]; then
-            echo "에러: Ingress NGINX 외부 IP를 기다리는 중 시간 초과되었습니다."
+            echo "에러: Ingress 'web-ingress' 외부 IP를 기다리는 중 시간 초과되었습니다."
+            # 추가 디버깅: Ingress 서비스 자체의 상태를 출력
+            kubectl get ingress web-ingress -o yaml || true
             exit 1
           fi
           echo "INGRESS_IP=$INGRESS_IP" >> "$GITHUB_OUTPUT"
@@ -94,6 +129,7 @@ jobs:
 
           echo "${DOMAIN}에 대한 A 레코드를 ${NEW_IP}로 DNS 존 ${DNS_ZONE}에 업데이트를 시도합니다..."
 
+          # 현재 A 레코드 값 가져오기
           CURRENT_RECORD_JSON=$(gcloud dns record-sets list --zone="$DNS_ZONE" --name="$DOMAIN." --type="A" --format="json" 2>/dev/null)
           CURRENT_IP=$(echo "$CURRENT_RECORD_JSON" | jq -r '.[0].rrdatas[0]' 2>/dev/null)
 
@@ -115,7 +151,7 @@ jobs:
               --project="${{ env.TF_VAR_project_id }}" \
               --old-rrdatas="$CURRENT_IP"
           fi
-          echo "DNS A 레코드 업데이트 완료 (전파까지 시간 소요 가능)"
+          echo "DNS A 레코드 업데이트 프로세스가 시작되었습니다. 전파에는 시간이 걸릴 수 있습니다."
 
   terraform-destroy:
     if: contains(github.event.head_commit.message, 'destroy')
