@@ -85,11 +85,3 @@ module "gcp_logs_to_onprem" {
   onprem_api_url  = var.onprem_api_url
   pubsub_sa_email = var.pubsub_sa_email
 }
-
-
-resource "google_storage_bucket" "log_bucket" {
-  name          = "${var.project_id}-log-bucket"
-  location      = var.region
-  project       = var.project_id
-  force_destroy = true
-}
