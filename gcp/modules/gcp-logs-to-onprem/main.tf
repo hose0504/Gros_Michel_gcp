@@ -29,9 +29,9 @@ resource "google_cloudfunctions_function" "log_to_onprem" {
 
   trigger_http = true
 
-  available_memory_mb   = 128
-  timeout               = 60
-  project               = var.project_id
+  available_memory_mb = 128
+  timeout             = 60
+  project             = var.project_id
 
   environment_variables = {
     ONPREM_API_URL = var.onprem_api_url
