@@ -3,3 +3,4 @@ terraform.tfstate.backup
 .terraform/
 terraform.exe
 *.auto.tfvars
+cloud_function/
