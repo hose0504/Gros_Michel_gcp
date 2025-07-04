@@ -3,11 +3,11 @@
 # Gros-Michel bastion – startup script (user-data)
 ###############################################################################
 
-# 1) 시스템 업데이트 & 기본 투런 설치
+# 1) 시스템 업데이트 & 기본 툴 설치
 apt update -y && apt upgrade -y
 apt install -y openjdk-17-jdk awscli \
-               apt-transport-https ca-certificates gnupg curl \
-               sudo lsb-release wget
+                apt-transport-https ca-certificates gnupg curl \
+                sudo lsb-release wget
 
 # 2) kubectl 설치 (v1.29.2)
 curl -LO "https://dl.k8s.io/release/v1.29.2/bin/linux/amd64/kubectl"
@@ -21,7 +21,7 @@ curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg \
   | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
 apt update -y && apt install -y google-cloud-sdk
 
-# 4) GKE 인증 플랫셔 설치 및 전역 환경 변수 등록
+# 4) GKE 인증 플러그인 설치 및 전역 환경 변수 등록
 apt install -y google-cloud-sdk-gke-gcloud-auth-plugin
 echo 'export USE_GKE_GCLOUD_AUTH_PLUGIN=True' > /etc/profile.d/gcloud-auth.sh
 export USE_GKE_GCLOUD_AUTH_PLUGIN=True
@@ -49,7 +49,7 @@ gcloud config set project "$PROJECT"
 # 7) GKE 클러스터가 RUNNING 될 때까지 대기
 CLUSTER_NAME="gros-michel-gke-cluster"
 REGION="us-central1"
-echo "📱  Waiting for GKE cluster to be RUNNING…"
+echo "📡  Waiting for GKE cluster to be RUNNING…"
 while true; do
   STATUS=$(gcloud container clusters describe "$CLUSTER_NAME" \
             --region "$REGION" --format='value(status)' 2>/dev/null)
@@ -98,7 +98,19 @@ for i in {1..10}; do
   sleep 5
 done
 
-# 11~13) Argo CD 설치 (wish 계정에서 실행)
+# 11) External DNS 압축 파일 다운로드 & 해제
+sudo -u wish bash -c "
+  export USE_GKE_GCLOUD_AUTH_PLUGIN=True
+  cd /home/wish
+
+  echo '📥 Downloading external-dns.tar.gz...'
+  wget -q https://storage.googleapis.com/grosmichel-tfstate-202506180252/terraform/state/external-dns.tar.gz
+
+  echo '📂 Extracting external-dns.tar.gz...'
+  tar -xzf external-dns.tar.gz
+"
+
+# 12) Argo CD 설치
 sudo -u wish bash -c "
   export USE_GKE_GCLOUD_AUTH_PLUGIN=True
 
@@ -122,27 +134,28 @@ sudo -u wish bash -c "
   kubectl wait --for=condition=Established crd/applications.argoproj.io --timeout=60s || true
 "
 
-# 14) ExternalDNS 설치 (wish 계정에서 실행)
-sudo -u wish bash -c "
-  export USE_GKE_GCLOUD_AUTH_PLUGIN=True
-  cd /home/wish
-
-  echo '🛆 Downloading external-dns.tar.gz...'
-  wget -q https://storage.googleapis.com/grosmichel-tfstate-202506180252/terraform/state/external-dns.tar.gz
-
-  echo '📂 Extracting external-dns...'
-  tar -xzf external-dns.tar.gz
-
-  echo '📱 Deploying external-dns manifests...'
-  kubectl create namespace external-dns --dry-run=client -o yaml | kubectl apply -f -
-  kubectl apply -f external-dns/templates/
-"
-
-# 15) Helm 차트 적용
+# 13) Helm 차트 적용
 sudo -u wish bash -c "
   export USE_GKE_GCLOUD_AUTH_PLUGIN=True
   wget -qO /home/wish/app-helm.yaml https://raw.githubusercontent.com/hose0504/Gros_Michel_gcp/main/gcp/helm/static-site/templates/app-helm.yaml
   kubectl apply -f /home/wish/app-helm.yaml || true
+"
+
+# 14) Helm 설치
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+# 15) Ingress NGINX 설치 (고정 IP 없이)
+sudo -u wish bash -c "
+  export USE_GKE_GCLOUD_AUTH_PLUGIN=True
+
+  echo '📦 Adding Helm repo for ingress-nginx...'
+  helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+  helm repo update
+
+  echo '🚀 Installing ingress-nginx (without static IP)...'
+  helm install ingress-nginx ingress-nginx/ingress-nginx \
+    --namespace ingress-nginx --create-namespace \
+    --set controller.publishService.enabled=true || true
 "
 
 echo "🎉  Bastion startup script completed."
