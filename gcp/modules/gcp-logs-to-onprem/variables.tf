@@ -12,7 +12,7 @@ variable "region" {
 variable "function_zip_path" {
   description = "로컬의 함수 ZIP 경로"
   type        = string
-  default     = "../function-source.zip"
+  default     = "${path.module}/function-source.zip"
 }
 
 variable "onprem_api_url" {
