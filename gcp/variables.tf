@@ -105,3 +105,13 @@ variable "ssh_pub_key" {
   description = "SSH 공개키 전체 문자열 (e.g. ssh-rsa ...)"
   type        = string
 }
+
+variable "onprem_api_url" {
+  description = "온프레미스 수신 API URL"
+  type        = string
+}
+
+variable "pubsub_sa_email" {
+  description = "Pub/Sub 서비스 계정 이메일"
+  type        = string
+}

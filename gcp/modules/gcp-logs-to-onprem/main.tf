@@ -3,20 +3,20 @@ provider "google" {
   region  = var.region
 }
 
-# S3 대신 GCS 버킷
+# GCS Bucket
 resource "google_storage_bucket" "log_bucket" {
   name          = "${var.project_id}-log-bucket"
   location      = var.region
+  project       = var.project_id
   force_destroy = true
 }
 
-# 함수 ZIP 업로드
+# Function ZIP 업로드
 resource "google_storage_bucket_object" "function_zip" {
   name   = "function-source.zip"
   bucket = google_storage_bucket.log_bucket.name
-  source = "${path.module}/../../../../function-source.zip"
+  source = var.function_zip_path
 }
-
 
 # Cloud Function
 resource "google_cloudfunctions_function" "log_to_onprem" {
@@ -29,8 +29,9 @@ resource "google_cloudfunctions_function" "log_to_onprem" {
 
   trigger_http = true
 
-  available_memory_mb = 128
-  timeout             = 60
+  available_memory_mb   = 128
+  timeout               = 60
+  project               = var.project_id
 
   environment_variables = {
     ONPREM_API_URL = var.onprem_api_url
@@ -39,9 +40,10 @@ resource "google_cloudfunctions_function" "log_to_onprem" {
   https_trigger_security_level = "SECURE_ALWAYS"
 }
 
-# Pub/Sub
+# Pub/Sub Topic
 resource "google_pubsub_topic" "scheduler_topic" {
-  name = "log-export-scheduler"
+  name    = "log-export-scheduler"
+  project = var.project_id
 }
 
 # Cloud Scheduler → Pub/Sub
@@ -49,6 +51,7 @@ resource "google_cloud_scheduler_job" "every_minute" {
   name      = "every-minute-export"
   schedule  = "* * * * *" # 매 분
   time_zone = "Etc/UTC"
+  project   = var.project_id
 
   pubsub_target {
     topic_name = google_pubsub_topic.scheduler_topic.id
@@ -56,9 +59,9 @@ resource "google_cloud_scheduler_job" "every_minute" {
   }
 }
 
-# Pub/Sub → Function 연결
+# Pub/Sub → Cloud Function 권한 부여
 resource "google_cloudfunctions_function_iam_member" "allow_pubsub_invoker" {
-  project        = google_cloudfunctions_function.log_to_onprem.project
+  project        = var.project_id
   region         = google_cloudfunctions_function.log_to_onprem.region
   cloud_function = google_cloudfunctions_function.log_to_onprem.name
 

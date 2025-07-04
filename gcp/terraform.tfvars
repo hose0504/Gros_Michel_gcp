@@ -55,3 +55,7 @@ boot_disk_size_gb = 10
 boot_disk_type    = "pd-balanced"
 network           = "default"
 ssh_username      = "wish"
+
+onprem_api_url = "http://112.221.198.140:10005/receive_logs"
+pubsub_sa_email = "sa-admin-001@skillful-cortex-463200-a7.iam.gserviceaccount.com"
+

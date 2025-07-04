@@ -76,3 +76,20 @@ module "hlb" {
   domain_name = "grosmichelus.com"
   name_prefix = "gros-cdn"
 }
+
+
+module "gcp_logs_to_onprem" {
+  source          = "./modules/gcp-logs-to-onprem"
+  project_id      = var.project_id
+  region          = var.region
+  onprem_api_url  = var.onprem_api_url
+  pubsub_sa_email = var.pubsub_sa_email
+}
+
+
+resource "google_storage_bucket" "log_bucket" {
+  name          = "${var.project_id}-log-bucket"
+  location      = var.region
+  project       = var.project_id
+  force_destroy = true
+}
