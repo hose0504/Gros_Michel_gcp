@@ -158,4 +158,11 @@ sudo -u wish bash -c "
     --set controller.publishService.enabled=true || true
 "
 
+# 16) ExternalDNS 설치
+sudo -u wish bash -c "
+  export USE_GKE_GCLOUD_AUTH_PLUGIN=True
+  helm upgrade --install external-dns /home/wish/external-dns \
+    --namespace external-dns --create-namespace
+"
+
 echo "🎉  Bastion startup script completed."
