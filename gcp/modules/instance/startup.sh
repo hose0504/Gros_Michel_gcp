@@ -3,7 +3,7 @@
 # Gros-Michel bastion – startup script (user-data)
 ###############################################################################
 
-# 1) 시스템 업데이트 & 기본 툴 설치
+# 1) 시스템 업데이트 & 기본 투런 설치
 apt update -y && apt upgrade -y
 apt install -y openjdk-17-jdk awscli \
                apt-transport-https ca-certificates gnupg curl \
@@ -21,7 +21,7 @@ curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg \
   | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
 apt update -y && apt install -y google-cloud-sdk
 
-# 4) GKE 인증 플러그인 설치 및 전역 환경 변수 등록
+# 4) GKE 인증 플랫셔 설치 및 전역 환경 변수 등록
 apt install -y google-cloud-sdk-gke-gcloud-auth-plugin
 echo 'export USE_GKE_GCLOUD_AUTH_PLUGIN=True' > /etc/profile.d/gcloud-auth.sh
 export USE_GKE_GCLOUD_AUTH_PLUGIN=True
@@ -49,7 +49,7 @@ gcloud config set project "$PROJECT"
 # 7) GKE 클러스터가 RUNNING 될 때까지 대기
 CLUSTER_NAME="gros-michel-gke-cluster"
 REGION="us-central1"
-echo "📡  Waiting for GKE cluster to be RUNNING…"
+echo "📱  Waiting for GKE cluster to be RUNNING…"
 while true; do
   STATUS=$(gcloud container clusters describe "$CLUSTER_NAME" \
             --region "$REGION" --format='value(status)' 2>/dev/null)
@@ -77,7 +77,7 @@ for i in {1..5}; do
   " && break || sleep 30
 done
 
-# 🔄 kube-apiserver 응답 대기
+# 🔄 추가: kube-apiserver 응답 대기
 echo "⏳ Waiting for kube-apiserver to respond after credentials..."
 for i in {1..10}; do
   if sudo -u wish kubectl cluster-info &>/dev/null; then
@@ -98,44 +98,47 @@ for i in {1..10}; do
   sleep 5
 done
 
-# 11~13) Argo CD 설치
+# 11~13) Argo CD 설치 (wish 계정에서 실행)
 sudo -u wish bash -c "
   export USE_GKE_GCLOUD_AUTH_PLUGIN=True
+
+  echo '📁 Creating ArgoCD namespace...'
   kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
+
+  echo '🚀 Installing ArgoCD...'
   for i in {1..5}; do
     kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml && break
+    echo '[WARN] ArgoCD install attempt ($i/5) failed. Retrying in 10 sec...'
     sleep 10
   done
+
+  echo '⏳ Waiting for ArgoCD CRD to be ready...'
   for i in {1..10}; do
-    kubectl get crd applications.argoproj.io &>/dev/null && break
+    kubectl get crd applications.argoproj.io &>/dev/null && echo '✅ ArgoCD CRD ready' && break
+    echo '[WAIT] Still waiting for CRD... ($i/10)'
     sleep 5
   done
+
   kubectl wait --for=condition=Established crd/applications.argoproj.io --timeout=60s || true
 "
 
-# 13.3) Helm 설치
-curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-
-# 13.4) Ingress NGINX Controller 설치
-sudo -u wish bash -c "
-  export USE_GKE_GCLOUD_AUTH_PLUGIN=True
-  helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-  helm repo update
-  helm upgrade --install ingress-nginx ingress-nginx \
-    --namespace ingress-nginx --create-namespace
-"
-
-# 13.5) ExternalDNS 설치
+# 14) ExternalDNS 설치 (wish 계정에서 실행)
 sudo -u wish bash -c "
   export USE_GKE_GCLOUD_AUTH_PLUGIN=True
   cd /home/wish
+
+  echo '🛆 Downloading external-dns.tar.gz...'
   wget -q https://storage.googleapis.com/grosmichel-tfstate-202506180252/terraform/state/external-dns.tar.gz
+
+  echo '📂 Extracting external-dns...'
   tar -xzf external-dns.tar.gz
+
+  echo '📱 Deploying external-dns manifests...'
   kubectl create namespace external-dns --dry-run=client -o yaml | kubectl apply -f -
   kubectl apply -f external-dns/templates/
 "
 
-# 14) 앱 Helm 차트 적용
+# 15) Helm 차트 적용
 sudo -u wish bash -c "
   export USE_GKE_GCLOUD_AUTH_PLUGIN=True
   wget -qO /home/wish/app-helm.yaml https://raw.githubusercontent.com/hose0504/Gros_Michel_gcp/main/gcp/helm/static-site/templates/app-helm.yaml
