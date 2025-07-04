@@ -77,7 +77,7 @@ for i in {1..5}; do
   " && break || sleep 30
 done
 
-# 🔄 추가: kube-apiserver 응답 대기
+# 🔄 kube-apiserver 응답 대기
 echo "⏳ Waiting for kube-apiserver to respond after credentials..."
 for i in {1..10}; do
   if sudo -u wish kubectl cluster-info &>/dev/null; then
@@ -98,59 +98,44 @@ for i in {1..10}; do
   sleep 5
 done
 
-# 11~13) Argo CD 설치 (wish 계정에서 실행)
+# 11~13) Argo CD 설치
 sudo -u wish bash -c "
   export USE_GKE_GCLOUD_AUTH_PLUGIN=True
-
-  echo '📁 Creating ArgoCD namespace...'
   kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
-
-  echo '🚀 Installing ArgoCD...'
   for i in {1..5}; do
     kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml && break
-    echo '[WARN] ArgoCD install attempt ($i/5) failed. Retrying in 10 sec...'
     sleep 10
   done
-
-  echo '⏳ Waiting for ArgoCD CRD to be ready...'
   for i in {1..10}; do
-    kubectl get crd applications.argoproj.io &>/dev/null && echo '✅ ArgoCD CRD ready' && break
-    echo '[WAIT] Still waiting for CRD... ($i/10)'
+    kubectl get crd applications.argoproj.io &>/dev/null && break
     sleep 5
   done
-
   kubectl wait --for=condition=Established crd/applications.argoproj.io --timeout=60s || true
 "
 
-# 13.4) Ingress NGINX Controller 설치 (wish 계정에서 실행)
+# 13.3) Helm 설치
+curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+# 13.4) Ingress NGINX Controller 설치
 sudo -u wish bash -c "
   export USE_GKE_GCLOUD_AUTH_PLUGIN=True
-
-  echo '🌐 Installing Ingress NGINX Controller...'
   helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
   helm repo update
-
   helm upgrade --install ingress-nginx ingress-nginx \
     --namespace ingress-nginx --create-namespace
 "
 
-# 13.5) ExternalDNS 설치 (wish 계정에서 실행)
+# 13.5) ExternalDNS 설치
 sudo -u wish bash -c "
   export USE_GKE_GCLOUD_AUTH_PLUGIN=True
   cd /home/wish
-
-  echo '📦 Downloading external-dns.tar.gz...'
   wget -q https://storage.googleapis.com/grosmichel-tfstate-202506180252/terraform/state/external-dns.tar.gz
-
-  echo '📂 Extracting external-dns...'
   tar -xzf external-dns.tar.gz
-
-  echo '📡 Deploying external-dns manifests...'
   kubectl create namespace external-dns --dry-run=client -o yaml | kubectl apply -f -
   kubectl apply -f external-dns/templates/
 "
 
-# 14) Helm 차트 적용
+# 14) 앱 Helm 차트 적용
 sudo -u wish bash -c "
   export USE_GKE_GCLOUD_AUTH_PLUGIN=True
   wget -qO /home/wish/app-helm.yaml https://raw.githubusercontent.com/hose0504/Gros_Michel_gcp/main/gcp/helm/static-site/templates/app-helm.yaml
