@@ -1,6 +1,17 @@
 provider: google
+
+google:
+  project: skillful-cortex-463200-a7
+  serviceAccountSecret: external-dns-sa
+
 domainFilters:
   - grosmichelus.com
+
 zoneIDFilters:
   - grosmichelus-zone
+
+policy: sync
+registry: txt
+txtOwnerId: grosmichelus-externaldns
+
 serviceAccountName: external-dns
