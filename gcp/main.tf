@@ -83,5 +83,5 @@ module "gcp_logs_to_onprem" {
   project_id      = var.project_id
   region          = var.region
   onprem_api_url  = var.onprem_api_url
-  pubsub_sa_email = var.pubsub_sa_email
+  pubsub_sa_email = google_service_account.sa_admin_001.email
 }
