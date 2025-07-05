@@ -84,4 +84,6 @@ module "gcp_logs_to_onprem" {
   region          = var.region
   onprem_api_url  = var.onprem_api_url
   pubsub_sa_email = var.pubsub_sa_email
+
+  depends_on = [module.iam]
 }
