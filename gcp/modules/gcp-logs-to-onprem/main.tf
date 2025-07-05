@@ -15,7 +15,8 @@ resource "google_storage_bucket" "log_bucket" {
 resource "google_storage_bucket_object" "function_zip" {
   name   = "function-source.zip"
   bucket = google_storage_bucket.log_bucket.name
-  source = "${path.module}/${var.function_zip_path}"
+  source = "${path.module}/function-source.zip"
+
 }
 
 # Cloud Function
