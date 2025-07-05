@@ -1,9 +1,10 @@
+# ✅ Provider 설정
 provider "google" {
   project = var.project_id
   region  = var.region
 }
 
-# GCS Bucket
+# ✅ GCS 버킷
 resource "google_storage_bucket" "log_bucket" {
   name          = "${var.project_id}-log-bucket"
   location      = var.region
@@ -11,15 +12,14 @@ resource "google_storage_bucket" "log_bucket" {
   force_destroy = true
 }
 
-# Function ZIP 업로드
+# ✅ Cloud Function 코드 업로드
 resource "google_storage_bucket_object" "function_zip" {
   name   = "function-source.zip"
   bucket = google_storage_bucket.log_bucket.name
   source = "${path.module}/function-source.zip"
-
 }
 
-# Cloud Function
+# ✅ Cloud Function 정의
 resource "google_cloudfunctions_function" "log_to_onprem" {
   name        = "log-to-onprem"
   runtime     = "python39"
@@ -39,18 +39,19 @@ resource "google_cloudfunctions_function" "log_to_onprem" {
   }
 
   https_trigger_security_level = "SECURE_ALWAYS"
+  depends_on = [google_storage_bucket_object.function_zip]
 }
 
-# Pub/Sub Topic
+# ✅ Pub/Sub 토픽 생성
 resource "google_pubsub_topic" "scheduler_topic" {
   name    = "log-export-scheduler"
   project = var.project_id
 }
 
-# Cloud Scheduler → Pub/Sub
+# ✅ Cloud Scheduler 작업 생성
 resource "google_cloud_scheduler_job" "every_minute" {
   name      = "every-minute-export"
-  schedule  = "* * * * *" # 매 분
+  schedule  = "* * * * *"
   time_zone = "Etc/UTC"
   project   = var.project_id
 
@@ -58,9 +59,11 @@ resource "google_cloud_scheduler_job" "every_minute" {
     topic_name = google_pubsub_topic.scheduler_topic.id
     data       = base64encode("trigger")
   }
+
+  depends_on = [google_pubsub_topic.scheduler_topic]
 }
 
-# Pub/Sub → Cloud Function 권한 부여
+# ✅ IAM 권한 부여: Pub/Sub → Cloud Function
 resource "google_cloudfunctions_function_iam_member" "allow_pubsub_invoker" {
   project        = var.project_id
   region         = google_cloudfunctions_function.log_to_onprem.region
@@ -71,5 +74,3 @@ resource "google_cloudfunctions_function_iam_member" "allow_pubsub_invoker" {
 
   depends_on = [google_cloudfunctions_function.log_to_onprem]
 }
-
-

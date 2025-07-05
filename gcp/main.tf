@@ -7,11 +7,16 @@ terraform {
       version = "~> 4.0"
     }
   }
+
+  backend "gcs" {
+    bucket = "grosmichel-tfstate-202506180252"
+    prefix = "terraform/state"
+  }
 }
 
-#-------------------------------
-# VPC 모듈 호출
-#-------------------------------
+#----------------------------------------
+# ✅ VPC (네트워크)
+#----------------------------------------
 module "vpc" {
   source          = "./modules/vpc"
   project_id      = var.project_id
@@ -20,21 +25,9 @@ module "vpc" {
   gcp_credentials = var.gcp_credentials
 }
 
-#-------------------------------
-# IAM 모듈 호출 (선택)
-#-------------------------------
-module "iam" {
-  source           = "./modules/iam"
-  project_id       = var.project_id
-  service_accounts = var.service_accounts
-  roles            = var.roles
-
-  depends_on = [module.gke]
-}
-
-#-------------------------------
-# GKE 모듈 호출
-#-------------------------------
+#----------------------------------------
+# ✅ GKE 클러스터
+#----------------------------------------
 module "gke" {
   source          = "./modules/gke"
   project_id      = var.project_id
@@ -46,12 +39,26 @@ module "gke" {
   node_pools      = var.node_pools
 }
 
+#----------------------------------------
+# ✅ IAM (서비스 계정 및 권한)
+#----------------------------------------
+module "iam" {
+  source           = "./modules/iam"
+  project_id       = var.project_id
+  service_accounts = var.service_accounts
+  roles            = var.roles
 
+  depends_on = [module.gke]
+}
+
+#----------------------------------------
+# ✅ Bastion 또는 VM 인스턴스
+#----------------------------------------
 module "instance" {
   source = "./modules/instance"
 
   project_id        = var.project_id
-  region            = var.region # ✅ 추가
+  region            = var.region
   zone              = var.zone
   network           = var.network
   instance_name     = var.instance_name
@@ -63,13 +70,9 @@ module "instance" {
   ssh_pub_key       = var.ssh_pub_key
 }
 
-terraform {
-  backend "gcs" {
-    bucket = "grosmichel-tfstate-202506180252"
-    prefix = "terraform/state"
-  }
-}
-
+#----------------------------------------
+# ✅ HTTPS Load Balancer (정적 콘텐츠 CDN)
+#----------------------------------------
 module "hlb" {
   source      = "./modules/HLB"
   bucket_name = "gros-michel-cdn-bucket-202506230121"
@@ -77,7 +80,9 @@ module "hlb" {
   name_prefix = "gros-cdn"
 }
 
-
+#----------------------------------------
+# ✅ GCP Logs → On-Prem 로그 서버
+#----------------------------------------
 module "gcp_logs_to_onprem" {
   source          = "./modules/gcp-logs-to-onprem"
   project_id      = var.project_id
@@ -85,4 +90,5 @@ module "gcp_logs_to_onprem" {
   onprem_api_url  = var.onprem_api_url
   pubsub_sa_email = var.pubsub_sa_email
 
+  depends_on = [module.iam]
 }
