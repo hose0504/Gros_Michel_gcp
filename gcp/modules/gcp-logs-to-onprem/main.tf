@@ -67,5 +67,11 @@ resource "google_cloudfunctions_function_iam_member" "allow_pubsub_invoker" {
   cloud_function = google_cloudfunctions_function.log_to_onprem.name
 
   role   = "roles/cloudfunctions.invoker"
-  member = "serviceAccount:${var.pubsub_sa_email}"
+  member = "serviceAccount:${google_service_account.sa_admin_001.email}"
+
+  depends_on = [
+    google_service_account.sa_admin_001,
+    google_cloudfunctions_function.log_to_onprem
+  ]
 }
+
