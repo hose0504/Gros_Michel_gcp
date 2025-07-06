@@ -1,9 +1,3 @@
-# ✅ Provider 설정
-provider "google" {
-  project = var.project_id
-  region  = var.region
-}
-
 # ✅ GCS 버킷
 resource "google_storage_bucket" "log_bucket" {
   name          = "${var.project_id}-log-bucket"
