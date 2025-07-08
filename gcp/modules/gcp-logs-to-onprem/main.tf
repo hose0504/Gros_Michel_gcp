@@ -22,7 +22,10 @@ resource "google_cloudfunctions_function" "log_to_onprem" {
   source_archive_bucket = google_storage_bucket.log_bucket.name
   source_archive_object = google_storage_bucket_object.function_zip.name
 
-  trigger_http = true
+  event_trigger {
+    event_type = "google.pubsub.topic.publish"
+    resource   = google_pubsub_topic.scheduler_topic.id
+  }
 
   available_memory_mb = 128
   timeout             = 60
@@ -32,9 +35,9 @@ resource "google_cloudfunctions_function" "log_to_onprem" {
     ONPREM_API_URL = var.onprem_api_url
   }
 
-  https_trigger_security_level = "SECURE_ALWAYS"
   depends_on = [google_storage_bucket_object.function_zip]
 }
+
 
 # ✅ Pub/Sub 토픽 생성
 resource "google_pubsub_topic" "scheduler_topic" {
