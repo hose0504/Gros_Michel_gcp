@@ -1,31 +1,35 @@
-from flask import Flask, request, jsonify
-import requests
+import base64
 import os
+import requests
 from datetime import datetime
-
-app = Flask(__name__)
 
 ONPREM_API_URL = os.environ.get("ONPREM_API_URL")
 
-@app.route("/", methods=["POST"])
-def lambda_handler():
+def lambda_handler(event, context):
     try:
+        # Pub/Sub는 Base64로 인코딩된 데이터가 들어옴
+        if 'data' in event:
+            decoded_data = base64.b64decode(event['data']).decode('utf-8')
+            print(f"✅ Received Pub/Sub message: {decoded_data}")
+        else:
+            print("⚠️ No data in event")
+            decoded_data = None
+
         log_entry = {
             "timestamp": datetime.utcnow().isoformat(),
-            "data": request.json
+            "data": decoded_data
         }
 
-        # 온프레미스로 로그 전송
+        # 온프레미스로 전송
         resp = requests.post(
             ONPREM_API_URL,
             json=log_entry,
             timeout=5
         )
         resp.raise_for_status()
-
-        print(f"✅ Sent to on-prem: {log_entry}")
-        return jsonify({"status": "success"}), 200
+        print(f"🚀 Sent to on-prem: {log_entry}")
+        return "Success"
 
     except Exception as e:
         print(f"❌ Error: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
+        raise
