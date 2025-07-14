@@ -19,6 +19,8 @@ resource "google_container_cluster" "primary" {
 
   min_master_version = var.cluster_version
 
+  deletion_protection = false
+
   addons_config {
     http_load_balancing {
       disabled = false
