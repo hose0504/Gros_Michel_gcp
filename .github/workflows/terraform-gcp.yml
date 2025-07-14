@@ -39,14 +39,12 @@ jobs:
 
       - name: Copy startup.sh to user-data.template
         run: |
+          # 현재 워크플로는 working-directory: gcp 기준으로 돌아가므로
+          # 상대 경로는 gcp/ 이하가 아니라 modules/instance 부터 시작
           cp modules/instance/startup.sh user-data.template
 
       - name: Terraform Init
-        run: |
-          terraform init \
-            -backend-config="bucket=grosmichel-tfstate-202506180252" \
-            -backend-config="prefix=terraform/state" \
-            -reconfigure
+        run: terraform init
 
       - name: Terraform Format Check
         run: terraform fmt -check
@@ -91,11 +89,7 @@ jobs:
           credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
 
       - name: Terraform Init
-        run: |
-          terraform init \
-            -backend-config="bucket=grosmichel-tfstate-202506180252" \
-            -backend-config="prefix=terraform/state" \
-            -reconfigure
+        run: terraform init
 
       - name: Terraform Destroy
         run: terraform destroy -auto-approve -input=false -var-file="terraform.tfvars"
